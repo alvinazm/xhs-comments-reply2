@@ -20,6 +20,22 @@ from ..services.xhs.errors import NoFeedDetailError, PageNotAccessibleError, XHS
 
 logger = logging.getLogger("api")
 
+get_comments_logger = logging.getLogger("get_comments")
+get_comments_handler = logging.FileHandler(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "..",
+        "logs",
+        f"get_comments_{time.strftime('%Y-%m-%d')}.log",
+    ),
+    encoding="utf-8",
+)
+get_comments_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
+get_comments_logger.addHandler(get_comments_handler)
+get_comments_logger.setLevel(logging.INFO)
+
 comment_bp = Blueprint("comment", __name__, url_prefix="/api")
 
 
@@ -79,6 +95,12 @@ def get_comments():
     url = data.get("url", "")
     max_comments = data.get("max_comments", 20)
 
+    start_time = time.time()
+    start_datetime = time.strftime("%Y-%m-%d %H:%M:%S")
+    get_comments_logger.info(
+        "[开始] 时间=%s, url=%s, max_comments=%d", start_datetime, url, max_comments
+    )
+
     try:
         req = CommentRequest(url=url, max_comments=max_comments)
         service = XiaohongshuService()
@@ -93,6 +115,24 @@ def get_comments():
                 else ""
             )
             return d
+
+        elapsed = time.time() - start_time
+        end_datetime = time.strftime("%Y-%m-%d %H:%M:%S")
+        get_comments_logger.info(
+            "[完成] 时间=%s, 耗时=%.2f秒, url=%s, max_comments=%d, 实际获取=%d, "
+            "total=%d, 笔记标题=%s, 作者=%s, IP属地=%s, 点赞=%s, 评论数=%s",
+            end_datetime,
+            elapsed,
+            url,
+            max_comments,
+            len(comments),
+            total,
+            note.title,
+            note.user_nickname,
+            note.ip_location,
+            note.liked_count,
+            note.comment_count,
+        )
 
         return jsonify(
             ApiResponse(
@@ -120,12 +160,24 @@ def get_comments():
         )
 
     except ValueError as e:
+        get_comments_logger.error(
+            "[失败] url=%s, max_comments=%d, 错误=参数错误: %s", url, max_comments, e
+        )
         logger.error("参数错误: %s", e)
         return jsonify(ApiResponse(success=False, error=str(e)).to_dict()), 400
     except PageNotAccessibleError as e:
+        get_comments_logger.error(
+            "[失败] url=%s, max_comments=%d, 错误=页面不可访问: %s",
+            url,
+            max_comments,
+            e,
+        )
         logger.error("页面不可访问: %s", e)
         return jsonify(ApiResponse(success=False, error=str(e)).to_dict()), 400
     except NoFeedDetailError:
+        get_comments_logger.error(
+            "[失败] url=%s, max_comments=%d, 错误=未获取到详情数据", url, max_comments
+        )
         logger.error("未获取到详情数据")
         return jsonify(
             ApiResponse(
@@ -133,9 +185,15 @@ def get_comments():
             ).to_dict()
         ), 400
     except XHSError as e:
+        get_comments_logger.error(
+            "[失败] url=%s, max_comments=%d, 错误=XHS错误: %s", url, max_comments, e
+        )
         logger.error("XHS 错误: %s", e)
         return jsonify(ApiResponse(success=False, error=str(e)).to_dict()), 500
     except Exception as e:
+        get_comments_logger.error(
+            "[失败] url=%s, max_comments=%d, 错误=未知错误: %s", url, max_comments, e
+        )
         logger.error("未知错误: %s", e)
         return jsonify(
             ApiResponse(success=False, error=f"未知错误: {e!s}").to_dict()

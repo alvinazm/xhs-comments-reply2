@@ -112,7 +112,7 @@ class XiaohongshuService:
                 CommentResponse.from_dict(c.to_dict())
                 for c in detail.comments.list_[:max_comments]
             ]
-            total = len(detail.comments.list_)
+            total = min(max_comments, len(detail.comments.list_))
 
             return note_info, comments, total
 

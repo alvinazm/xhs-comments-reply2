@@ -45,7 +45,8 @@ start_backend() {
         pip install -r "$PROJECT_DIR/requirements.txt"
     fi
     
-    python -m app.main > /tmp/backend.log 2>&1 &
+    mkdir -p "$PROJECT_DIR/logs"
+    python -m app.main >> "$PROJECT_DIR/logs/server_$(date +%Y-%m-%d).log" 2>&1 &
     BACKEND_PID=$!
     echo $BACKEND_PID > /tmp/xhs_backend.pid
     echo -e "${GREEN}后端已启动 (PID: $BACKEND_PID, port=$BACKEND_PORT)${NC}"
@@ -62,7 +63,7 @@ start_frontend() {
         npm install
     fi
     
-    npm run dev > /tmp/frontend.log 2>&1 &
+    npm run dev >> /tmp/frontend.log 2>&1 &
     FRONTEND_PID=$!
     echo $FRONTEND_PID > /tmp/xhs_frontend.pid
     echo -e "${GREEN}前端已启动 (PID: $FRONTEND_PID, port=$FRONTEND_PORT)${NC}"

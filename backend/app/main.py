@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 
 from flask import Flask, send_from_directory
 from flask_cors import CORS
@@ -10,8 +11,14 @@ from .api import comment_bp
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
+
+log = logging.getLogger("werkzeug")
+log.setLevel(logging.WARNING)
+
 logger = logging.getLogger("xhs-api")
 
 
@@ -34,8 +41,6 @@ def create_app() -> Flask:
 
 
 if __name__ == "__main__":
-    import sys
-
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
     from config import Config
 
