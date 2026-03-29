@@ -222,7 +222,7 @@ const pollClassificationStatus = async (taskId) => {
 const downloadClassified = async (task) => {
   try {
     const res = await xhsApi.downloadClassifiedFile(task.task_id)
-    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const url = window.URL.createObjectURL(new Blob([res]))
     const link = document.createElement('a')
     link.href = url
     link.download = `classified_${task.task_id.slice(0, 8)}.csv`

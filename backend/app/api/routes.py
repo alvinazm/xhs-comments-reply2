@@ -509,7 +509,9 @@ def start_classify(task_id: str):
             )
         else:
             task_manager.update_classification_status(
-                task_id, "failed", error_message=result["error"]
+                task_id,
+                "failed",
+                classification_error=result.get("error", "Unknown error"),
             )
 
     thread = threading.Thread(target=run_classification)
@@ -569,12 +571,14 @@ def download_classified_file(task_id: str):
     if task.classification_status != "completed":
         return jsonify(ApiResponse(success=False, error="请先完成分类").to_dict()), 400
 
-    base, ext = os.path.splitext(task.file_path)
-    classified_path = f"{base}_classified{ext}" if ext else f"{base}_classified.csv"
-    if not os.path.exists(classified_path):
-        return jsonify(
-            ApiResponse(success=False, error="分类文件不存在").to_dict()
-        ), 404
+    classified_path = task.classified_file_path
+    if not classified_path or not os.path.exists(classified_path):
+        base, ext = os.path.splitext(task.file_path)
+        classified_path = f"{base}_classified{ext}" if ext else f"{base}_classified.csv"
+        if not os.path.exists(classified_path):
+            return jsonify(
+                ApiResponse(success=False, error="分类文件不存在").to_dict()
+            ), 404
 
     filename = f"classified_{task.task_id[:8]}.csv"
     return send_file(

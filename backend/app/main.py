@@ -3,10 +3,15 @@
 import logging
 import os
 import sys
+from pathlib import Path
 
+from dotenv import load_dotenv
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
+
+project_root = Path(__file__).parent.parent.parent
+load_dotenv(project_root / ".env")
 
 from .api import comment_bp
 

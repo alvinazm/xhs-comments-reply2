@@ -1,0 +1,3 @@
+# 配置AI评论分类提示词路径
+prompt:
+  classifier: "backend/prompts/classifier.md"
