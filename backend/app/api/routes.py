@@ -387,6 +387,10 @@ def export_status(task_id: str):
                 "completed_at": task.completed_at.isoformat()
                 if task.completed_at
                 else None,
+                "classification_status": task.classification_status or "none",
+                "classification_progress": task.classification_progress,
+                "classification_summary": task.classification_summary,
+                "classified_file_path": task.classified_file_path,
             },
         ).to_dict()
     )
@@ -415,6 +419,10 @@ def export_tasks():
                     "completed_at": task.completed_at.isoformat()
                     if task.completed_at
                     else None,
+                    "classification_status": task.classification_status or "none",
+                    "classification_progress": task.classification_progress,
+                    "classification_summary": task.classification_summary,
+                    "classified_file_path": task.classified_file_path,
                 }
                 for task in tasks
             ],
@@ -442,4 +450,113 @@ def export_download(task_id: str):
     filename = f"comments_{task.task_id[:8]}.csv"
     return send_file(
         task.file_path, mimetype="text/csv", as_attachment=True, download_name=filename
+    )
+
+
+@comment_bp.route("/classify/<task_id>", methods=["POST"])
+def start_classify(task_id: str):
+    """启动AI评论分类（异步执行）。"""
+    from ..services.export_task_manager import task_manager
+
+    task = task_manager.get_task(task_id)
+    if not task:
+        return jsonify(ApiResponse(success=False, error="任务不存在").to_dict()), 404
+
+    if task.status != "completed":
+        return jsonify(
+            ApiResponse(success=False, error="任务未完成，无法分类").to_dict()
+        ), 400
+
+    if not os.path.exists(task.file_path):
+        return jsonify(
+            ApiResponse(success=False, error="评论文件不存在").to_dict()
+        ), 404
+
+    if task.classification_status == "running":
+        return jsonify(
+            ApiResponse(success=False, error="分类正在进行中").to_dict()
+        ), 400
+
+    data = request.get_json() or {}
+    batch_size = data.get("batch_size", 20)
+    workers = data.get("workers", 5)
+
+    task_manager.update_classification_status(task_id, "running", 0)
+
+    import threading
+    from ..services.ai_classifier import execute_classify_task
+
+    def run_classification():
+        def progress_callback(progress):
+            task_manager.update_classification_status(task_id, "running", progress)
+
+        result = execute_classify_task(
+            task_id, task.file_path, batch_size, workers, progress_callback
+        )
+        if result["status"] == "completed":
+            task_manager.update_classification_status(
+                task_id, "completed", 100, result["summary"], result["file_path"]
+            )
+        else:
+            task_manager.update_classification_status(
+                task_id, "failed", error_message=result["error"]
+            )
+
+    thread = threading.Thread(target=run_classification)
+    thread.daemon = True
+    thread.start()
+
+    return jsonify(
+        ApiResponse(
+            success=True,
+            data={"task_id": task_id, "status": "started", "message": "分类任务已启动"},
+        ).to_dict()
+    )
+
+
+@comment_bp.route("/classification-status/<task_id>", methods=["GET"])
+def get_classification_status(task_id: str):
+    """获取评论分类状态。"""
+    from ..services.export_task_manager import task_manager
+
+    task = task_manager.get_task(task_id)
+    if not task:
+        return jsonify(ApiResponse(success=False, error="任务不存在").to_dict()), 404
+
+    return jsonify(
+        ApiResponse(
+            success=True,
+            data={
+                "task_id": task_id,
+                "classification_status": task.classification_status or "none",
+                "classification_progress": task.classification_progress,
+                "classification_summary": task.classification_summary,
+                "classified_file_path": task.classified_file_path,
+                "error_message": task.error_message,
+            },
+        ).to_dict()
+    )
+
+
+@comment_bp.route("/download-classified/<task_id>", methods=["GET"])
+def download_classified_file(task_id: str):
+    """下载已分类的评论文件。"""
+    from ..services.export_task_manager import task_manager
+
+    task = task_manager.get_task(task_id)
+    if not task:
+        return jsonify(ApiResponse(success=False, error="任务不存在").to_dict()), 404
+
+    if task.classification_status != "completed":
+        return jsonify(ApiResponse(success=False, error="请先完成分类").to_dict()), 400
+
+    classified_path = task.file_path.replace(".csv", "_classified.csv")
+    if not os.path.exists(classified_path):
+        return jsonify(
+            ApiResponse(success=False, error="分类文件不存在").to_dict()
+        ), 404
+
+    filename = f"classified_{task.task_id[:8]}.csv"
+    return send_file(
+        classified_path, mimetype="text/csv", as_attachment=True, download_name=filename
     )
