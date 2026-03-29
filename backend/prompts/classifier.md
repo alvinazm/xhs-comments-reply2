@@ -17,6 +17,7 @@
     "category": "praise|question|neutral|constructive|spam|hate",
     "confidence": 85,
     "reason": "简要原因（中文）",
+    "action": "回复|忽略",
     "generated_reply": "建议的回复内容（如需回复），中文，不超过50字"
   }
 ]
@@ -28,11 +29,11 @@
 - 40-59: 存在歧义，选择最可能的类别
 
 **回复策略：**
-- praise → 需要回复，生成感谢内容
-- question → 需要回复，生成解答内容
-- neutral → 可忽略，或简单互动
-- constructive → 需要回复，认真回应
-- spam → 不需要回复
-- hate → 不需要回复
+- praise → action: "回复"
+- question → action: "回复"
+- neutral → action: "忽略"
+- constructive → action: "回复"
+- spam → action: "忽略"
+- hate → action: "忽略"
 
 只返回JSON数组，不要markdown格式，不要解释。

@@ -109,9 +109,12 @@
               <div class="inline-flex items-center gap-2 px-3 py-1 bg-purple-50 rounded-full">
                 <span class="text-sm text-purple-700">AI分类完成:</span>
                 <span class="text-xs text-gray-600">
-                  正面: {{ task.classification_summary?.positive || 0 }},
-                  负面: {{ task.classification_summary?.negative || 0 }},
-                  问题: {{ task.classification_summary?.question || 0 }}
+                  正面: {{ task.classification_summary?.praise || 0 }},
+                  问题: {{ task.classification_summary?.question || 0 }},
+                  中性: {{ task.classification_summary?.neutral || 0 }},
+                  建设性: {{ task.classification_summary?.constructive || 0 }},
+                  垃圾: {{ task.classification_summary?.spam || 0 }},
+                  攻击性: {{ task.classification_summary?.hate || 0 }}
                 </span>
               </div>
             </div>
