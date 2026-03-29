@@ -29,6 +29,10 @@ class ExportTask:
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     completed_at: Optional[datetime] = None
+    classification_status: str = "none"
+    classification_progress: int = 0
+    classification_summary: dict = field(default_factory=dict)
+    classified_file_path: str = ""
 
 
 class ExportTaskManager:
@@ -89,6 +93,29 @@ class ExportTaskManager:
                 task.updated_at = datetime.now()
                 if status == "completed":
                     task.completed_at = datetime.now()
+
+    def update_classification_status(
+        self,
+        task_id: str,
+        status: str,
+        progress: int = 0,
+        summary: dict = None,
+        classified_file_path: str = None,
+        error_message: str = None,
+    ) -> None:
+        """更新分类状态。"""
+        with self._lock:
+            if task_id in self._tasks:
+                task = self._tasks[task_id]
+                task.classification_status = status
+                task.classification_progress = progress
+                if summary is not None:
+                    task.classification_summary = summary
+                if classified_file_path is not None:
+                    task.classified_file_path = classified_file_path
+                if error_message is not None:
+                    task.error_message = error_message
+                task.updated_at = datetime.now()
 
     def execute_task(self, task_id: str) -> None:
         """执行导出任务。"""
