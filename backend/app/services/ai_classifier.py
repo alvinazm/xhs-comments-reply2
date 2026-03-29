@@ -66,8 +66,11 @@ def classify_single_batch(client, batch: list) -> list:
         batch_results = json.loads(text)
 
         if isinstance(batch_results, list):
+            for i, result in enumerate(batch_results):
+                result["id"] = batch[i]["comment_id"]
             return batch_results
         else:
+            batch_results["id"] = batch[0]["comment_id"]
             return [batch_results]
     except (json.JSONDecodeError, KeyError, AttributeError) as e:
         return [
