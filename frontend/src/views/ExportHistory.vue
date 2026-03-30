@@ -117,6 +117,49 @@
                   攻击性: {{ task.classification_summary?.hate || 0 }}
                 </span>
               </div>
+
+              <div class="mt-3 flex gap-2 flex-wrap">
+                <span class="text-sm text-gray-500">回复:</span>
+                <label class="cursor-pointer bg-blue-500 text-white py-1 px-3 rounded-lg hover:bg-blue-600 text-sm">
+                  上传CSV
+                  <input
+                    type="file"
+                    accept=".csv"
+                    class="hidden"
+                    @change="(e) => handleCsvUpload(e, task)"
+                  />
+                </label>
+              </div>
+
+              <div v-if="replyData[task.task_id]?.to_reply > 0" class="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                <p class="text-sm text-green-700 mb-2">
+                  确认发送 {{ replyData[task.task_id].to_reply }} 条回复？
+                </p>
+                <button
+                  @click="() => confirmReply(task)"
+                  class="bg-green-500 text-white py-1 px-3 rounded-lg hover:bg-green-600 text-sm"
+                >
+                  确认发送
+                </button>
+              </div>
+
+              <div v-if="replyProgress[task.task_id]?.running" class="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p class="text-sm text-blue-700">
+                  正在发送 {{ replyProgress[task.task_id].current }}/{{ replyProgress[task.task_id].total }}
+                </p>
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                  <div 
+                    class="bg-blue-500 h-2 rounded-full"
+                    :style="{ width: (replyProgress[task.task_id].current / replyProgress[task.task_id].total * 100) + '%' }"
+                  ></div>
+                </div>
+              </div>
+
+              <div v-if="replyProgress[task.task_id]?.completed" class="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p class="text-sm text-gray-700">
+                  发送完成: {{ replyProgress[task.task_id].sended }} 成功, {{ replyProgress[task.task_id].failed?.length || 0 }} 失败
+                </p>
+              </div>
             </div>
 
             <div v-if="task.status === 'failed'" class="text-sm text-red-500">
@@ -135,6 +178,10 @@ import { xhsApi } from '../api/xhs'
 import { useExportStore } from '../stores/export'
 
 const exportStore = useExportStore()
+
+const replyData = ref({})
+const replyProgress = ref({})
+let replyInterval = null
 
 const statusText = (status) => {
   const map = {
@@ -238,6 +285,84 @@ const downloadClassified = async (task) => {
   }
 }
 
+const handleCsvUpload = async (event, task) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  try {
+    const res = await fetch('/api/reply-from-csv', {
+      method: 'POST',
+      body: formData,
+    })
+    const json = await res.json()
+    if (json.success) {
+      replyData.value = { ...replyData.value, [task.task_id]: json.data }
+    } else {
+      alert(json.error || '上传失败')
+    }
+  } catch (e) {
+    alert(`上传失败: ${e.message}`)
+  }
+  event.target.value = ''
+}
+
+const confirmReply = async (task) => {
+  const data = replyData.value[task.task_id]
+  if (!data || data.to_reply === 0) return
+
+  try {
+    await fetch('/api/reply-confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: task.url,
+        comments: data.comments,
+      }),
+    })
+    replyProgress.value = {
+      ...replyProgress.value,
+      [task.task_id]: { running: true, current: 0, total: data.to_reply, sended: 0, completed: false },
+    }
+    pollReplyStatus(task.task_id)
+  } catch (e) {
+    alert(`发送失败: ${e.message}`)
+  }
+}
+
+const pollReplyStatus = (taskId) => {
+  if (replyInterval) clearInterval(replyInterval)
+
+  replyInterval = setInterval(async () => {
+    try {
+      const res = await fetch('/api/reply-status')
+      const json = await res.json()
+      if (json.success) {
+        const status = json.data
+        replyProgress.value = {
+          ...replyProgress.value,
+          [taskId]: {
+            current: status.current,
+            total: status.total,
+            sended: status.sended,
+            failed: status.failed,
+            running: status.running,
+            completed: !status.running,
+          },
+        }
+        if (!status.running) {
+          clearInterval(replyInterval)
+          replyInterval = null
+        }
+      }
+    } catch (e) {
+      console.error('查询状态失败', e)
+    }
+  }, 2000)
+}
+
 onMounted(() => {
   exportStore.fetchTasks()
   exportStore.startPolling()
@@ -247,6 +372,9 @@ onUnmounted(() => {
   exportStore.stopPolling()
   if (classificationPollInterval.value) {
     clearInterval(classificationPollInterval.value)
+  }
+  if (replyInterval) {
+    clearInterval(replyInterval)
   }
 })
 </script>

@@ -584,3 +584,79 @@ def download_classified_file(task_id: str):
     return send_file(
         classified_path, mimetype="text/csv", as_attachment=True, download_name=filename
     )
+
+
+@comment_bp.route("/reply-from-csv", methods=["POST"])
+def reply_from_csv():
+    """解析上传的CSV，返回要回复的评论列表"""
+    if "file" not in request.files:
+        return jsonify(ApiResponse(success=False, error="请上传文件").to_dict()), 400
+
+    file = request.files["file"]
+    if not file.filename.endswith(".csv"):
+        return jsonify(ApiResponse(success=False, error="请上传CSV文件").to_dict()), 400
+
+    comments = []
+    stream = io.StringIO(file.read().decode("utf-8-sig"), newline="")
+    reader = csv.DictReader(stream)
+
+    for row in reader:
+        reply_text = row.get("generated_reply", "").strip()
+        if reply_text:
+            comments.append(
+                {
+                    "comment_id": row.get("评论ID", ""),
+                    "user_nickname": row.get("评论人用户名", ""),
+                    "content": row.get("评论内容", ""),
+                    "user_id": row.get("评论人ID", ""),
+                    "reply_text": reply_text,
+                }
+            )
+
+    return jsonify(
+        ApiResponse(
+            success=True,
+            data={
+                "to_reply": len(comments),
+                "comments": comments,
+            },
+        ).to_dict()
+    )
+
+
+_reply_sender = None
+
+
+@comment_bp.route("/reply-confirm", methods=["POST"])
+def reply_confirm():
+    """确认发送回复"""
+    global _reply_sender
+
+    from ..services.reply_sender import ReplySender
+
+    data = request.get_json()
+    url = data.get("url", "")
+    comments = data.get("comments", [])
+
+    if not comments:
+        return jsonify(
+            ApiResponse(success=False, error="没有要发送的评论").to_dict()
+        ), 400
+
+    service = XiaohongshuService()
+    _reply_sender = ReplySender(service)
+    _reply_sender.start(comments, url)
+
+    return jsonify(ApiResponse(success=True, data={"status": "running"}).to_dict())
+
+
+@comment_bp.route("/reply-status", methods=["GET"])
+def reply_status():
+    """查询发送状态"""
+    from ..services.reply_sender import ReplySender
+
+    if _reply_sender:
+        return jsonify(
+            ApiResponse(success=True, data=_reply_sender.get_status()).to_dict()
+        )
+    return jsonify(ApiResponse(success=True, data={"running": False}).to_dict())
