@@ -18,10 +18,14 @@
     "confidence": 85,
     "reason": "简要原因（中文）",
     "action": "回复|忽略",
-    "generated_reply": "建议的回复内容（如需回复），中文，不超过50字"
+    "generated_reply": "建议的回复内容（如需回复），中文，不超过50字。如果action为"忽略"，则generated_reply为空字符串"
   }
 ]
 ```
+
+**重要：generated_reply字段必须始终存在**：
+- 当action="回复"时，generated_reply应包含具体的回复内容（中文，不超过50字）
+- 当action="忽略"时，generated_reply为空字符串""
 
 **置信度规则：**
 - 85-100: 分类明确

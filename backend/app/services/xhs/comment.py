@@ -79,6 +79,8 @@ def reply_comment(
 
     logger.info("回复评论成功")
 
+    return True
+
 
 def _find_and_scroll_to_comment(
     page: Page,
@@ -96,10 +98,6 @@ def _find_and_scroll_to_comment(
     stagnant = 0
 
     for attempt in range(max_attempts):
-        if _check_end_container(page):
-            logger.info("已到达评论底部，未找到目标评论")
-            break
-
         current_count = _get_comment_count(page)
         if current_count != last_count:
             last_count = current_count
@@ -109,13 +107,6 @@ def _find_and_scroll_to_comment(
         if stagnant >= 10:
             logger.info("评论数量停滞超过10次")
             break
-
-        if current_count > 0:
-            page.scroll_nth_element_into_view(PARENT_COMMENT, current_count - 1)
-            sleep_random(200, 500)
-
-        page.evaluate("window.scrollBy(0, window.innerHeight * 0.8)")
-        sleep_random(400, 800)
 
         if comment_id:
             selector = f"#comment-{comment_id}"
@@ -142,6 +133,17 @@ def _find_and_scroll_to_comment(
             if found:
                 logger.info("通过 userID 找到评论 (尝试 %d 次)", attempt + 1)
                 return True
+
+        if _check_end_container(page):
+            logger.info("已到达评论底部，未找到目标评论")
+            break
+
+        if current_count > 0:
+            page.scroll_nth_element_into_view(PARENT_COMMENT, current_count - 1)
+            sleep_random(200, 500)
+
+        page.evaluate("window.scrollBy(0, window.innerHeight * 0.8)")
+        sleep_random(400, 800)
 
         sleep_random(600, 1200)
 

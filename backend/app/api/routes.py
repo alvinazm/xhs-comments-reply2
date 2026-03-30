@@ -612,8 +612,23 @@ def reply_from_csv():
     if not file.filename.endswith(".csv"):
         return jsonify(ApiResponse(success=False, error="请上传CSV文件").to_dict()), 400
 
+    import uuid
+    from pathlib import Path
+
+    project_root = Path(__file__).parent.parent.parent.parent
+    upload_dir = project_root / "upload"
+    upload_dir.mkdir(exist_ok=True)
+
+    file_content = file.read().decode("utf-8-sig")
+    file_id = str(uuid.uuid4())[:8]
+    original_name = file.filename
+    saved_path = upload_dir / f"reply_{file_id}_{original_name}"
+    with open(saved_path, "w", encoding="utf-8-sig") as f:
+        f.write(file_content)
+    logger.info(f"保存上传的CSV: {saved_path}")
+
     comments = []
-    stream = io.StringIO(file.read().decode("utf-8-sig"), newline="")
+    stream = io.StringIO(file_content, newline="")
     reader = csv.DictReader(stream)
 
     for row in reader:

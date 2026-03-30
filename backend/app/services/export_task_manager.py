@@ -35,6 +35,27 @@ class ExportTask:
     classified_file_path: Optional[str] = None
     classification_error: str = ""
 
+    def to_dict(self) -> dict:
+        return {
+            "task_id": self.task_id,
+            "url": self.url,
+            "max_comments": self.max_comments,
+            "status": self.status,
+            "progress": self.progress,
+            "total_fetched": self.total_fetched,
+            "file_path": self.file_path,
+            "error_message": self.error_message,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
+            "classification_status": self.classification_status,
+            "classification_progress": self.classification_progress,
+            "classification_summary": self.classification_summary,
+            "classified_file_path": self.classified_file_path,
+        }
+
 
 class ExportTaskManager:
     """导出任务管理器。"""

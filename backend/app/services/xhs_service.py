@@ -2,8 +2,10 @@
 
 import logging
 import os
+import random
 import re
 import sys
+import time
 from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
@@ -255,8 +257,6 @@ class XiaohongshuService:
         if not comments:
             return 0, []
 
-        import random
-
         parsed = parse_xhs_url(url)
         if not parsed:
             raise ValueError("无效的小红书链接")
@@ -274,29 +274,52 @@ class XiaohongshuService:
         failed = []
 
         try:
-            for comment in comments:
+            for i, comment in enumerate(comments):
                 comment_id = comment.get("comment_id", "")
                 user_id = comment.get("user_id", "")
                 content = comment.get("reply_text", "")
 
+                logger.info(
+                    f"[reply_batch] 处理第 {i + 1}/{len(comments)} 条: comment_id={comment_id}, content={content[:30] if content else 'empty'}"
+                )
+
                 if not content:
+                    logger.info(f"[reply_batch] 跳过: reply_text为空")
                     continue
                 if not comment_id and not user_id:
+                    logger.info(f"[reply_batch] 跳过: comment_id和user_id都为空")
                     continue
 
+                logger.info(f"[reply_batch] 调用 reply_comment, page={page}")
                 try:
-                    reply_comment(
+                    result = reply_comment(
                         page, feed_id, xsec_token, content, comment_id, user_id
                     )
+                    logger.info(f"[reply_batch] reply_comment 返回, result={result}")
                     success_count += 1
+                    logger.info(f"[reply_batch] 回复成功, 当前成功数={success_count}")
                 except Exception as e:
+                    logger.error(f"[reply_batch] 回复失败: {e}")
                     comment["error"] = str(e)
                     failed.append(comment)
 
-                if comment != comments[-1]:
-                    time.sleep(random.uniform(3, 8))
+                logger.info(
+                    f"[reply_batch] 检查是否需要等待, i={i}, len={len(comments)}"
+                )
+                if i < len(comments) - 1:
+                    sleep_duration = random.uniform(3, 8)
+                    logger.info(f"[reply_batch] 等待 {sleep_duration:.2f} 秒")
+                    time.sleep(sleep_duration)
+                    logger.info(f"[reply_batch] 等待完成, 准备处理下一条")
 
+            logger.info(
+                f"[reply_batch] 循环结束, 返回 success={success_count}, failed={len(failed)}"
+            )
             return success_count, failed
+        except Exception as e:
+            logger.error(f"[reply_batch] 发生异常: {e}")
+            raise
         finally:
+            logger.info(f"[reply_batch] 清理资源")
             browser.close_page(page)
             browser.close()
