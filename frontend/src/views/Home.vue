@@ -77,8 +77,14 @@
         </button>
       </div>
 
-      <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-        {{ error }}
+      <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center justify-between">
+        <span>{{ error }}</span>
+        <button
+          @click="fetchComments"
+          class="ml-4 text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+        >
+          重试
+        </button>
       </div>
 
       <div v-if="note" class="bg-white rounded-lg shadow-md p-6 mb-6">
