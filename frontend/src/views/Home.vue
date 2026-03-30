@@ -86,16 +86,7 @@
       <div class="bg-white rounded-lg shadow-md p-6 mt-6">
         <h2 class="text-xl font-bold mb-6">导出历史</h2>
         
-        <div v-if="loading" class="mb-4">
-          <div class="flex justify-between text-sm mb-1">
-            <span class="text-blue-600">正在获取评论...</span>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-2">
-            <div class="bg-blue-500 h-2 rounded-full animate-pulse" style="width: 60%"></div>
-          </div>
-        </div>
-        
-        <div v-if="exportStore.state.tasks.length === 0 && !loading" class="text-center py-8 text-gray-500">
+        <div v-if="exportStore.state.tasks.length === 0" class="text-center py-8 text-gray-500">
           暂无导出记录
         </div>
 

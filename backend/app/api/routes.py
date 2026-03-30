@@ -117,7 +117,7 @@ def get_comments():
         service = XiaohongshuService()
 
         task.note_title = "获取中..."
-        task_manager.update_task(task.task_id, task)
+        task_manager.update_task_full(task.task_id, task)
 
         note, comments, total = service.get_comments(req.url, req.max_comments)
 
@@ -182,7 +182,7 @@ def get_comments():
             task.status = "failed"
             task.error_message = "未获取到评论"
 
-        task_manager.update_task(task.task_id, task)
+        task_manager.update_task_full(task.task_id, task)
 
         def format_comment(c):
             d = c.to_dict()

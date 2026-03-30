@@ -120,6 +120,12 @@ class ExportTaskManager:
                 if status == "completed":
                     task.completed_at = datetime.now()
 
+    def update_task_full(self, task_id: str, task: "ExportTask") -> None:
+        """更新整个任务对象。"""
+        with self._lock:
+            if task_id in self._tasks:
+                self._tasks[task_id] = task
+
     def update_classification_status(
         self,
         task_id: str,
