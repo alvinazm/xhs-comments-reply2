@@ -401,7 +401,7 @@ def export_tasks():
     """获取导出任务列表。"""
     from ..services.export_task_manager import task_manager
 
-    tasks = task_manager.list_tasks()
+    tasks = task_manager.get_all_tasks()
     return jsonify(
         ApiResponse(
             success=True,
