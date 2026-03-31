@@ -167,6 +167,11 @@ class ExportTaskManager:
             self.update_task(task_id, progress=10)
             note, comments, total = service.get_comments(task.url, task.max_comments)
 
+            from .whitelist_service import load_whitelist
+
+            whitelist = set(load_whitelist())
+            comments = [c for c in comments if c.user_id not in whitelist]
+
             self.update_task(task_id, progress=50, total_fetched=len(comments))
 
             session_id = save_comments_to_csv(comments)

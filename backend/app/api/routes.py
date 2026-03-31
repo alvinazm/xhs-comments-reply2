@@ -121,6 +121,11 @@ def get_comments():
 
         note, comments, total = service.get_comments(req.url, req.max_comments)
 
+        from ..services.whitelist_service import load_whitelist
+
+        whitelist = set(load_whitelist())
+        comments = [c for c in comments if c.user_id not in whitelist]
+
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(
@@ -819,3 +824,32 @@ def reply_status():
             ApiResponse(success=True, data=_reply_sender.get_status()).to_dict()
         )
     return jsonify(ApiResponse(success=True, data={"running": False}).to_dict())
+
+
+@comment_bp.route("/whitelist", methods=["GET"])
+def get_whitelist():
+    """获取白名单列表"""
+    from ..services.whitelist_service import load_whitelist
+
+    user_ids = load_whitelist()
+    return jsonify(ApiResponse(success=True, data={"user_ids": user_ids}).to_dict())
+
+
+@comment_bp.route("/whitelist", methods=["POST"])
+def set_whitelist():
+    """保存白名单列表"""
+    from ..services.whitelist_service import save_whitelist
+
+    data = request.get_json()
+    user_ids = data.get("user_ids", [])
+
+    if not isinstance(user_ids, list):
+        return jsonify(
+            ApiResponse(success=False, error="user_ids 必须为数组").to_dict()
+        ), 400
+
+    user_ids = [uid.strip() for uid in user_ids if uid.strip()]
+
+    if save_whitelist(user_ids):
+        return jsonify(ApiResponse(success=True, message="白名单已保存").to_dict())
+    return jsonify(ApiResponse(success=False, error="保存失败").to_dict()), 500

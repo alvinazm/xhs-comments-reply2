@@ -282,10 +282,10 @@ def execute_classify_task(
 
         client = OpenAI(api_key=api_key, base_url=base_url, timeout=60)
 
-        from config import Config
+        from .whitelist_service import load_whitelist
 
-        whitelist_user_ids = Config.WHITELIST_USER_IDS or []
-        whitelist_reason = Config.WHITELIST_REASON or "白名单用户"
+        whitelist_user_ids = load_whitelist()
+        whitelist_reason = "白名单用户"
 
         comments = []
         original_rows = []
@@ -374,7 +374,9 @@ def execute_classify_task(
             )
 
         output_filename = file_path.replace(".csv", "_classified.csv")
-        fieldnames = list(original_rows[0].keys()) + [
+
+        original_headers = list(original_rows[0].keys()) if original_rows else []
+        fieldnames = original_headers + [
             "classification",
             "confidence",
             "action",
@@ -382,10 +384,13 @@ def execute_classify_task(
             "generated_reply",
         ]
         with open(output_filename, "w", encoding="utf-8-sig", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
             writer.writeheader()
             for i, c in enumerate(classified):
-                row = dict(original_rows[i])
+                if i < len(original_rows):
+                    row = dict(original_rows[i])
+                else:
+                    row = {}
                 row["classification"] = c.get("category", "")
                 row["confidence"] = c.get("confidence", "")
                 row["action"] = c.get("action", "")
@@ -395,7 +400,7 @@ def execute_classify_task(
 
         counts = {}
         for c in classified:
-            cat = c.get("category", "unknown")
+            cat = c.get("classification", "unknown")
             counts[cat] = counts.get(cat, 0) + 1
 
         log_info(f"[{task_id}] 分类完成! 输出文件: {output_filename}")

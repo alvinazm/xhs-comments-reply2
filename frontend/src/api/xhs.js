@@ -73,6 +73,14 @@ export const xhsApi = {
   downloadClassifiedFile(taskId) {
     return apiClient.get(`/download-classified/${taskId}`, { responseType: 'blob' })
   },
+
+  getWhitelist() {
+    return apiClient.get('/whitelist')
+  },
+
+  saveWhitelist(userIds) {
+    return apiClient.post('/whitelist', { user_ids: userIds })
+  },
 }
 
 export default xhsApi

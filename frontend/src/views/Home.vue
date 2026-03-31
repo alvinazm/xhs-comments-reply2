@@ -1,8 +1,18 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <header class="bg-white shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 py-4">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         <h1 class="text-2xl font-bold text-xhs-red">小红书评论获取</h1>
+        <button
+          @click="showSettings = true"
+          class="flex items-center gap-2 text-gray-600 hover:text-gray-800"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>设置</span>
+        </button>
       </div>
     </header>
 
@@ -310,6 +320,41 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showSettings" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <h3 class="text-lg font-bold mb-4">白名单设置</h3>
+        
+        <p class="text-sm text-gray-600 mb-3">请输入要排除的用户ID，每行一个：</p>
+        
+        <textarea
+          v-model="whitelistInput"
+          rows="10"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent font-mono text-sm"
+          placeholder="user_id_1
+user_id_2
+user_id_3"
+        ></textarea>
+
+        <p class="text-xs text-gray-500 mt-2">白名单用户的评论不会被保存到CSV中</p>
+        
+        <div class="flex gap-3 mt-4">
+          <button
+            @click="saveWhitelist"
+            :disabled="savingWhitelist"
+            class="flex-1 bg-xhs-red text-white py-2 px-4 rounded-lg hover:bg-red-600 disabled:opacity-50"
+          >
+            {{ savingWhitelist ? '保存中...' : '保存' }}
+          </button>
+          <button
+            @click="showSettings = false"
+            class="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -341,6 +386,9 @@ const replyContent = ref('')
 const replyData = ref({})
 const replyProgress = ref({})
 let replyInterval = null
+const showSettings = ref(false)
+const whitelistInput = ref('')
+const savingWhitelist = ref(false)
 
 const displayedComments = computed(() => {
   return comments.value.slice(0, displayedCount)
@@ -663,4 +711,40 @@ const pollReplyStatus = (taskId) => {
     }
   }, 2000)
 }
+
+const loadWhitelist = async () => {
+  try {
+    const res = await xhsApi.getWhitelist()
+    if (res.success) {
+      whitelistInput.value = (res.data.user_ids || []).join('\n')
+    }
+  } catch (e) {
+    console.error('加载白名单失败', e)
+  }
+}
+
+const saveWhitelist = async () => {
+  savingWhitelist.value = true
+  try {
+    const userIds = whitelistInput.value
+      .split('\n')
+      .map(s => s.trim())
+      .filter(s => s)
+    
+    await xhsApi.saveWhitelist(userIds)
+    showSettings.value = false
+    alert('白名单已保存')
+  } catch (e) {
+    alert('保存失败: ' + e.message)
+  } finally {
+    savingWhitelist.value = false
+  }
+}
+
+onMounted(() => {
+  checkChromeStatus()
+  exportStore.fetchTasks()
+  exportStore.startPolling()
+  loadWhitelist()
+})
 </script>
