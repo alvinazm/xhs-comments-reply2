@@ -43,22 +43,44 @@ async def handle_client(websocket: WebSocketServerProtocol, path: str):
     """处理客户端连接"""
     client_id = None
     try:
-        async for message in websocket:
-            data = json.loads(message)
-            msg_type = data.get("type")
+        # 等待客户端发送注册消息
+        try:
+            first_message = await asyncio.wait_for(websocket.recv(), timeout=10)
+        except asyncio.TimeoutError:
+            logger.warning("客户端超时未发送注册消息")
+            return
 
-            if msg_type == "register":
-                client_id = data.get("client_id", "unknown")
-                await register_client(client_id, websocket)
-                await websocket.send(
-                    json.dumps({"type": "registered", "client_id": client_id})
-                )
+        data = json.loads(first_message)
+        msg_type = data.get("type")
 
-            elif msg_type == "response":
-                logger.debug(f"收到客户端响应: {data}")
+        if msg_type == "register":
+            client_id = data.get("client_id", "unknown")
+            await register_client(client_id, websocket)
+            await websocket.send(
+                json.dumps({"type": "registered", "client_id": client_id})
+            )
+            logger.info(f"客户端 {client_id} 注册成功")
+
+            # 持续监听客户端消息
+            async for message in websocket:
+                data = json.loads(message)
+                msg_type = data.get("type")
+
+                if msg_type == "response":
+                    logger.debug(f"收到客户端响应: {data}")
+
+                elif msg_type == "ping":
+                    await websocket.send(json.dumps({"type": "pong"}))
+
+        else:
+            logger.warning(f"客户端未发送注册消息，收到: {msg_type}")
 
     except websockets.exceptions.ConnectionClosed:
         logger.info("客户端断开连接")
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON 解析错误: {e}")
+    except Exception as e:
+        logger.error(f"处理客户端错误: {e}")
     finally:
         if client_id:
             await unregister_client(client_id)
