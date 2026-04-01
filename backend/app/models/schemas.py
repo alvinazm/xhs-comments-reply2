@@ -1,7 +1,7 @@
 """数据模型。"""
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 
 
 @dataclass
@@ -33,7 +33,7 @@ class CommentResponse:
     user_id: str
     user_nickname: str
     sub_comment_count: str
-    sub_comments: list["CommentResponse"]
+    sub_comments: List["CommentResponse"]
 
     @classmethod
     def from_dict(cls, d: dict) -> "CommentResponse":

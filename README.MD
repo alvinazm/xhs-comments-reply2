@@ -4,7 +4,7 @@
 
 - 复制.env.example 为.env 文件：在里面填入minmax的apikey
 - 输入./start.sh 启动
-- http://localhost:8000 浏览器访问
+- http://localhost:5000 浏览器访问
 
 
 
