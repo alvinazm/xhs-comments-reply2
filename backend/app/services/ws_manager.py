@@ -39,15 +39,21 @@ async def send_to_client(client_id: str, message: dict) -> bool:
         return False
 
 
-async def handle_client(websocket: WebSocketServerProtocol, path: str):
+async def handle_client(websocket: WebSocketServerProtocol):
     """处理客户端连接"""
     client_id = None
+    path = None
+    logger.info(f"收到新的 WebSocket 连接")
     try:
         # 等待客户端发送注册消息
         try:
             first_message = await asyncio.wait_for(websocket.recv(), timeout=10)
+            logger.info(f"收到第一条消息: {first_message[:100]}")
         except asyncio.TimeoutError:
             logger.warning("客户端超时未发送注册消息")
+            return
+        except Exception as e:
+            logger.error(f"接收消息错误: {e}")
             return
 
         data = json.loads(first_message)
@@ -80,7 +86,7 @@ async def handle_client(websocket: WebSocketServerProtocol, path: str):
     except json.JSONDecodeError as e:
         logger.error(f"JSON 解析错误: {e}")
     except Exception as e:
-        logger.error(f"处理客户端错误: {e}")
+        logger.error(f"处理客户端错误: {e}", exc_info=True)
     finally:
         if client_id:
             await unregister_client(client_id)
@@ -96,8 +102,9 @@ def is_any_client_connected() -> bool:
     return len(clients) > 0
 
 
-async def start_ws_server(host="0.0.0.0", port=8765):
+async def start_ws_server(host="127.0.0.1", port=8765):
     """启动 WebSocket 服务器"""
+    logger.info(f"正在启动 WebSocket 服务器: {host}:{port}")
     async with websockets.serve(handle_client, host, port):
-        logger.info(f"WebSocket 服务器启动: {host}:{port}")
+        logger.info(f"WebSocket 服务器已启动: {host}:{port}")
         await asyncio.Future()
