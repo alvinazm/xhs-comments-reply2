@@ -33,6 +33,7 @@ class Config:
     _chrome_cfg = _json_config.get("chrome")
     _backend_cfg = _json_config.get("backend")
     _frontend_cfg = _json_config.get("frontend")
+    _flask_cfg = _json_config.get("flask")
 
     CHROME_HOST = os.getenv(
         "CHROME_HOST", _chrome_cfg.get("host") if _chrome_cfg else None
@@ -41,7 +42,9 @@ class Config:
         os.getenv("CHROME_PORT", _chrome_cfg.get("port") if _chrome_cfg else 9222)
     )
 
-    FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
+    FLASK_HOST = os.getenv(
+        "FLASK_HOST", _flask_cfg.get("host") if _flask_cfg else "0.0.0.0"
+    )
     FLASK_PORT = int(
         os.getenv("FLASK_PORT", _backend_cfg.get("port") if _backend_cfg else 5000)
     )
