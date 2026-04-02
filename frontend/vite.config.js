@@ -24,8 +24,8 @@ const frontendPort = config?.frontend?.port
 export default defineConfig({
   plugins: [vue()],
   server: {
-    port: frontendPort,
     host: '0.0.0.0',
+    port: frontendPort,
     proxy: {
       '/api': {
         target: `http://${backendHost}:${backendPort}`,

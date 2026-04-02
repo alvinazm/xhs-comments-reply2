@@ -1,5 +1,7 @@
 """CDP WebSocket 客户端（Browser, Page），通过 Chrome DevTools Protocol 控制浏览器。"""
 
+from __future__ import annotations
+
 import json
 import logging
 import os

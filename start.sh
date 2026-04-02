@@ -1,7 +1,4 @@
 #!/bin/bash
-echo "=== 安装依赖 ==="
-
-pip install -r requirements.txt
 
 echo "=== 小红书评论获取系统启动 ==="
 
@@ -10,11 +7,11 @@ PROJECT_DIR="$SCRIPT_DIR"
 
 if [ -f "$PROJECT_DIR/config.json" ]; then
     CHROME_PORT=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/config.json'))['chrome']['port'])" 2>/dev/null || echo 9222)
-    BACKEND_PORT=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/config.json'))['backend']['port'])" 2>/dev/null || echo 5000)
+    BACKEND_PORT=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/config.json'))['backend']['port'])" 2>/dev/null || echo 8000)
     FRONTEND_PORT=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/config.json'))['frontend']['port'])" 2>/dev/null || echo 3000)
 else
     CHROME_PORT=9222
-    BACKEND_PORT=5000
+    BACKEND_PORT=8000
     FRONTEND_PORT=3000
 fi
 
@@ -99,8 +96,8 @@ case "${1:-start}" in
         start_frontend
         echo ""
         echo -e "${GREEN}=== 所有服务已启动 ==="
-        echo -e "后端: http://0.0.0.0:$BACKEND_PORT"
-        echo -e "前端: http://0.0.0.0:$FRONTEND_PORT"
+        echo -e "后端: http://127.0.0.1:$BACKEND_PORT"
+        echo -e "前端: http://localhost:$FRONTEND_PORT"
         echo -e "Chrome: port=$CHROME_PORT"
         echo -e "按 Ctrl+C 停止所有服务${NC}"
         echo ""
@@ -120,8 +117,8 @@ case "${1:-start}" in
         start_frontend
         echo ""
         echo -e "${GREEN}=== 所有服务已启动 ==="
-        echo -e "后端: http://0.0.0.0:$BACKEND_PORT"
-        echo -e "前端: http://0.0.0.0:$FRONTEND_PORT"
+        echo -e "后端: http://127.0.0.1:$BACKEND_PORT"
+        echo -e "前端: http://localhost:$FRONTEND_PORT"
         echo -e "按 Ctrl+C 停止所有服务${NC}"
         echo ""
         trap "stop; exit 0" INT TERM

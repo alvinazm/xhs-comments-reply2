@@ -547,7 +547,7 @@ git commit -m "feat: add AI classify button and download classified CSV"
 
 - [ ] **Step 2: 测试AI分类功能**
 
-1. 访问 http://localhost:5000/export-history
+1. 访问 http://localhost:8000/export-history
 2. 确保有已完成的任务
 3. 点击"AI智能分类"按钮
 4. 观察进度条变化

@@ -41,9 +41,7 @@ class Config:
         os.getenv("CHROME_PORT", _chrome_cfg.get("port") if _chrome_cfg else 9222)
     )
 
-    FLASK_HOST = os.getenv(
-        "FLASK_HOST", _backend_cfg.get("host") if _backend_cfg else "0.0.0.0"
-    )
+    FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
     FLASK_PORT = int(
         os.getenv("FLASK_PORT", _backend_cfg.get("port") if _backend_cfg else 5000)
     )
@@ -51,14 +49,6 @@ class Config:
 
     VITE_PORT = int(
         os.getenv("VITE_PORT", _frontend_cfg.get("port") if _frontend_cfg else 5173)
-    )
-
-    _ws_cfg = _json_config.get("ws_server")
-    WS_SERVER_HOST = os.getenv(
-        "WS_SERVER_HOST", _ws_cfg.get("host") if _ws_cfg else "0.0.0.0"
-    )
-    WS_SERVER_PORT = int(
-        os.getenv("WS_SERVER_PORT", _ws_cfg.get("port") if _ws_cfg else 8765)
     )
 
     MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")

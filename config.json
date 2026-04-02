@@ -1,18 +1,14 @@
 {
   "chrome": {
-    "host": "localhost",
+    "host": "127.0.0.1",
     "port": 9292
   },
   "backend": {
-    "host": "0.0.0.0",
-    "port": 5000
-  },
-  "frontend": {
-    "host": "0.0.0.0",
+    "host": "192.168.0.108",
     "port": 3000
   },
-  "ws_server": {
-    "host": "0.0.0.0",
-    "port": 8765
+  "frontend": {
+    "host": "192.168.0.108",
+    "port": 5000
   }
 }
