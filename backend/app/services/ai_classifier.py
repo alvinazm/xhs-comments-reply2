@@ -5,45 +5,66 @@ import json
 import logging
 import os
 import re
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional, Callable
 
+from ..config import Config
+
 logger = logging.getLogger("ai_classifier")
 
+_ai_logger = None
 
-def setup_logging():
-    """设置日志输出到 logs/ai_classifier_YYYY-MM-DD.log。"""
-    log_dir = Path(__file__).parent.parent.parent.parent / "logs"
-    log_dir.mkdir(exist_ok=True)
-    log_file = log_dir / f"ai_classifier_{time.strftime('%Y-%m-%d')}.log"
 
-    handler = logging.FileHandler(log_file, encoding="utf-8")
-    handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+def get_ai_logger():
+    """获取或创建 AI 分类日志记录器。"""
+    global _ai_logger
+    if _ai_logger is not None:
+        return _ai_logger
 
     ai_logger = logging.getLogger("ai_classifier")
-    ai_logger.addHandler(handler)
-    ai_logger.setLevel(logging.INFO)
+
+    if getattr(sys, "frozen", False):
+        log_dir = Path(sys._MEIPASS).parent.parent / "logs"
+    else:
+        log_dir = Path(__file__).parent.parent.parent.parent / "logs"
+
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / f"ai_classifier_{time.strftime('%Y-%m-%d')}.log"
+
+        handler = logging.FileHandler(log_file, encoding="utf-8")
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+        )
+        ai_logger.addHandler(handler)
+        ai_logger.setLevel(logging.INFO)
+        _ai_logger = ai_logger
+    except Exception as e:
+        print(f"Warning: Could not setup AI classifier logging: {e}", file=sys.stderr)
 
     return ai_logger
 
 
 def log_info(msg):
     """记录日志并立即刷新。"""
-    ai_logger.info(msg)
-    for h in ai_logger.handlers:
-        h.flush()
+    ai_logger = get_ai_logger()
+    if ai_logger:
+        ai_logger.info(msg)
+        for h in ai_logger.handlers:
+            h.flush()
 
 
 def log_error(msg):
     """记录错误日志并立即刷新。"""
-    ai_logger.error(msg)
-    for h in ai_logger.handlers:
-        h.flush()
+    ai_logger = get_ai_logger()
+    if ai_logger:
+        ai_logger.error(msg)
+        for h in ai_logger.handlers:
+            h.flush()
 
-
-ai_logger = setup_logging()
 
 _prompt_cache: Optional[str] = None
 _prompt_mtime: float = 0
@@ -55,7 +76,11 @@ def load_prompt(prompt_path: str) -> str:
 
     path = Path(prompt_path)
     if not path.is_absolute():
-        path = Path(__file__).parent.parent.parent.parent / prompt_path
+        if getattr(sys, "frozen", False):
+            # In frozen bundle, prompts are at Contents/Resources/prompts/
+            path = Path(sys._MEIPASS) / "prompts" / Path(prompt_path).name
+        else:
+            path = Path(__file__).parent.parent.parent / prompt_path
 
     if not path.exists():
         raise FileNotFoundError(f"Prompt file not found: {path}")
@@ -97,14 +122,6 @@ def extract_json(text: str) -> str:
 
 def load_config() -> tuple:
     """加载MiniMax API配置。"""
-    import sys
-    from pathlib import Path
-
-    backend_path = Path(__file__).parent.parent.parent
-    if str(backend_path) not in sys.path:
-        sys.path.insert(0, str(backend_path))
-    from config import Config
-
     api_key = Config.MINIMAX_API_KEY
     base_url = Config.MINIMAX_BASE_URL
     return api_key, base_url
@@ -112,14 +129,6 @@ def load_config() -> tuple:
 
 def get_prompt_config() -> dict:
     """加载prompt配置。"""
-    import sys
-    from pathlib import Path
-
-    backend_path = Path(__file__).parent.parent.parent
-    if str(backend_path) not in sys.path:
-        sys.path.insert(0, str(backend_path))
-    from config import Config
-
     return Config.PROMPT or {}
 
 

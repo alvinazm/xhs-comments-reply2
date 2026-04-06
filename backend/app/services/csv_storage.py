@@ -2,15 +2,19 @@
 
 import csv
 import os
+import sys
 import time
 import uuid
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import List
 
-DOWNLOAD_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-    "download",
-)
+if getattr(sys, "frozen", False):
+    DOWNLOAD_DIR = Path(sys._MEIPASS).parent / "download"
+else:
+    DOWNLOAD_DIR = Path(__file__).parent.parent.parent.parent / "download"
+
+DOWNLOAD_DIR = str(DOWNLOAD_DIR)
 
 CSV_HEADERS = [
     "评论人用户名",

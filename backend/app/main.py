@@ -43,20 +43,35 @@ def create_app() -> Flask:
     """创建 Flask 应用。"""
     from .services.csv_storage import DOWNLOAD_DIR
 
-    app = Flask(__name__, static_folder="static", static_url_path="/static")
+    if getattr(sys, "frozen", False):
+        static_dir = Path(sys._MEIPASS).parent / "Resources" / "static"
+        logs_dir = Path(sys._MEIPASS).parent.parent / "logs"
+    else:
+        static_dir = Path(__file__).parent.parent / "static"
+        logs_dir = Path(__file__).parent.parent.parent / "logs"
+
+    app = Flask(__name__)
     CORS(app)
 
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+    os.makedirs(logs_dir, exist_ok=True)
 
     app.register_blueprint(comment_bp)
 
     @app.route("/")
     def index():
         """返回前端页面。"""
-        static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
-        if os.path.exists(os.path.join(static_dir, "index.html")):
-            return send_from_directory(static_dir, "index.html")
+        if (static_dir / "index.html").exists():
+            return send_from_directory(str(static_dir), "index.html")
         return {"message": "XHS API Server", "status": "running"}
+
+    @app.route("/<path:filename>")
+    def static_files(filename):
+        """处理静态文件请求。"""
+        file_path = static_dir / filename
+        if file_path.exists():
+            return send_from_directory(str(static_dir), filename)
+        return {"error": "Not found"}, 404
 
     return app
 

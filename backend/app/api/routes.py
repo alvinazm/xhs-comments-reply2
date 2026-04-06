@@ -7,11 +7,18 @@ import sys
 import os
 import time
 from datetime import datetime
+from pathlib import Path
 
 import requests
 from flask import Blueprint, jsonify, request, Response, send_file
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+if getattr(sys, "frozen", False):
+    _app_root = Path(sys._MEIPASS).parent.parent
+else:
+    _app_root = Path(__file__).parent.parent.parent
+
+sys.path.insert(0, str(_app_root))
+
 from config import Config
 
 from ..models.schemas import ApiResponse, CommentRequest, ReplyRequest
@@ -23,12 +30,12 @@ from ..services.csv_storage import get_csv_path, csv_exists
 logger = logging.getLogger("api")
 
 get_comments_logger = logging.getLogger("get_comments")
+
+os.makedirs(os.path.join(_app_root, "logs"), exist_ok=True)
+
 get_comments_handler = logging.FileHandler(
     os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "..",
-        "..",
+        _app_root,
         "logs",
         f"get_comments_{time.strftime('%Y-%m-%d')}.log",
     ),
