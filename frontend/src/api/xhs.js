@@ -81,6 +81,14 @@ export const xhsApi = {
   saveWhitelist(userIds) {
     return apiClient.post('/whitelist', { user_ids: userIds })
   },
+
+  getConfig() {
+    return apiClient.get('/config')
+  },
+
+  saveConfig(config) {
+    return apiClient.post('/config', config)
+  },
 }
 
 export default xhsApi

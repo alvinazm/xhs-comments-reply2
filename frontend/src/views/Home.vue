@@ -322,35 +322,76 @@
     </div>
 
     <div v-if="showSettings" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <h3 class="text-lg font-bold mb-4">白名单设置</h3>
+      <div class="bg-white rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <h3 class="text-lg font-bold mb-4">设置</h3>
         
-        <p class="text-sm text-gray-600 mb-3">请输入要排除的用户ID，每行一个：</p>
+        <div class="mb-6">
+          <h4 class="text-md font-semibold mb-3 text-gray-800">MiniMax API 配置</h4>
+          
+          <div class="mb-3">
+            <label class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+            <input
+              v-model="minimaxApiKey"
+              type="password"
+              rows="4"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent font-mono text-sm"
+              placeholder="sk-cp-xxxxxxxx"
+            />
+          </div>
+          
+          <div class="mb-3">
+            <label class="block text-sm font-medium text-gray-700 mb-1">API 地址</label>
+            <div class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg font-mono text-sm text-gray-600">
+              {{ minimaxBaseUrl || 'https://api.minimaxi.com/v1' }}
+            </div>
+          </div>
+          
+          <p class="text-xs text-gray-500 mb-3">
+            获取 API Key: <a href="https://platform.minimaxi.com/user-center/basic-information/interface-key" target="_blank" class="text-blue-500 hover:underline">https://platform.minimaxi.com</a>
+          </p>
+          
+          <button
+            @click="saveConfig"
+            :disabled="savingConfig"
+            class="w-full bg-xhs-red text-white py-2 px-4 rounded-lg hover:bg-red-600 disabled:opacity-50"
+          >
+            {{ savingConfig ? '保存中...' : '保存 API 配置' }}
+          </button>
+        </div>
         
-        <textarea
-          v-model="whitelistInput"
-          rows="10"
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent font-mono text-sm"
-          placeholder="user_id_1
+        <hr class="my-4">
+        
+        <div>
+          <h4 class="text-md font-semibold mb-3 text-gray-800">白名单设置</h4>
+          
+          <p class="text-sm text-gray-600 mb-3">请输入要排除的用户ID，每行一个：</p>
+          
+          <textarea
+            v-model="whitelistInput"
+            rows="8"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent font-mono text-sm"
+            placeholder="user_id_1
 user_id_2
 user_id_3"
-        ></textarea>
+          ></textarea>
 
-        <p class="text-xs text-gray-500 mt-2">白名单用户的评论不会被保存到CSV中</p>
-        
-        <div class="flex gap-3 mt-4">
+          <p class="text-xs text-gray-500 mt-2">白名单用户的评论不会被保存到CSV中</p>
+          
           <button
             @click="saveWhitelist"
             :disabled="savingWhitelist"
-            class="flex-1 bg-xhs-red text-white py-2 px-4 rounded-lg hover:bg-red-600 disabled:opacity-50"
+            class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 disabled:opacity-50 mt-3"
           >
-            {{ savingWhitelist ? '保存中...' : '保存' }}
+            {{ savingWhitelist ? '保存中...' : '保存白名单' }}
           </button>
+        </div>
+        
+        <div class="flex gap-3 mt-4">
           <button
             @click="showSettings = false"
             class="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300"
           >
-            取消
+            关闭
           </button>
         </div>
       </div>
@@ -389,6 +430,9 @@ let replyInterval = null
 const showSettings = ref(false)
 const whitelistInput = ref('')
 const savingWhitelist = ref(false)
+const minimaxApiKey = ref('')
+const minimaxBaseUrl = ref('')
+const savingConfig = ref(false)
 
 const displayedComments = computed(() => {
   return comments.value.slice(0, displayedCount)
@@ -743,10 +787,38 @@ const saveWhitelist = async () => {
   }
 }
 
+const loadConfig = async () => {
+  try {
+    const res = await xhsApi.getConfig()
+    if (res.success) {
+      minimaxApiKey.value = res.data.minimax_api_key || ''
+      minimaxBaseUrl.value = res.data.minimax_base_url || 'https://api.minimaxi.com/v1'
+    }
+  } catch (e) {
+    console.error('加载配置失败', e)
+  }
+}
+
+const saveConfig = async () => {
+  savingConfig.value = true
+  try {
+    await xhsApi.saveConfig({
+      minimax_api_key: minimaxApiKey.value,
+      minimax_base_url: minimaxBaseUrl.value,
+    })
+    alert('配置已保存')
+  } catch (e) {
+    alert('保存失败: ' + e.message)
+  } finally {
+    savingConfig.value = false
+  }
+}
+
 onMounted(() => {
   checkChromeStatus()
   exportStore.fetchTasks()
   exportStore.startPolling()
   loadWhitelist()
+  loadConfig()
 })
 </script>
