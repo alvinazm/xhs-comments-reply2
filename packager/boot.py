@@ -4,6 +4,8 @@
 import os
 import sys
 import json
+import signal
+import threading
 from pathlib import Path
 
 if getattr(sys, "frozen", False):
@@ -41,22 +43,53 @@ if not config_file.exists():
         with open(config_file, "w") as f:
             json.dump(default_config, f, indent=2)
 
-env_file = app_dir / ".env"
-if not env_file.exists():
-    source_env = Path(__file__).parent.parent / ".env"
-    if source_env.exists():
-        import shutil
-
-        shutil.copy(source_env, env_file)
-    else:
-        with open(env_file, "w") as f:
-            f.write(
-                "# MinMax API Key\nMINIMAX_API_KEY=your_api_key\nMINIMAX_BASE_URL=https://api.minimaxi.com/v1\n"
-            )
-
 from app.main import create_app, start_scheduler
 from config import Config
 
 app = create_app()
 start_scheduler()
-app.run(host=Config.FLASK_HOST, port=Config.FLASK_PORT, debug=False)
+
+shutdown_flag = threading.Event()
+
+
+def signal_handler(signum, frame):
+    print("收到终止信号，正在关闭...")
+    shutdown_flag.set()
+
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
+
+from werkzeug.serving import make_server
+
+
+class ServerManager:
+    def __init__(self):
+        self.server = None
+
+    def start(self):
+        self.server = make_server(
+            Config.FLASK_HOST, Config.FLASK_PORT, app, threaded=True, processes=1
+        )
+        print(f"Flask 服务启动: http://{Config.FLASK_HOST}:{Config.FLASK_PORT}")
+        self.server.serve_forever()
+
+    def stop(self):
+        if self.server:
+            self.server.shutdown()
+
+
+manager = ServerManager()
+
+server_thread = threading.Thread(target=manager.start, daemon=True)
+server_thread.start()
+
+try:
+    while not shutdown_flag.is_set():
+        shutdown_flag.wait(timeout=1)
+except (KeyboardInterrupt, SystemExit):
+    pass
+
+print("正在关闭 Flask 服务...")
+manager.stop()
+print("服务已关闭")
