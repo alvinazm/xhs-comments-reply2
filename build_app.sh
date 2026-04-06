@@ -31,7 +31,10 @@ echo "3/5 加密后端 Python 代码..."
 rm -rf dist_backend
 cd backend && pyarmor gen -O ../dist_backend -r app/ && cd ..
 
-echo "3.5/5 复制 prompts 目录..."
+echo "3.5/5 复制 config.py..."
+cp backend/config.py dist_backend/config.py
+
+echo "3.6/5 复制 prompts 目录..."
 mkdir -p dist_backend/prompts
 cp -r backend/prompts/* dist_backend/prompts/
 
