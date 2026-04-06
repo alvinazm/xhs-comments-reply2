@@ -7,8 +7,12 @@
 - http://localhost:8000 浏览器访问
 
 
+## 打包应用
+- 命令：./build_app.sh
+
 
 ## TODO
+- 删除无用的代码
 - 创建虚拟环境：source venv/bin/activate
 - 是否需要创建虚拟环境？
 

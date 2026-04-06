@@ -15,6 +15,10 @@ if [ ! -d "$APP_PATH" ]; then
     exit 1
 fi
 
+# 关闭 XHSCommentApp 应用
+echo "正在关闭 XHSCommentApp..."
+pkill -x XHSCommentApp 2>/dev/null
+
 # 检查端口是否被占用
 PID=$(lsof -ti:$PORT 2>/dev/null)
 
