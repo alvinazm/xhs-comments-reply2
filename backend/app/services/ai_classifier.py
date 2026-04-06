@@ -400,7 +400,7 @@ def execute_classify_task(
                     row = dict(original_rows[i])
                 else:
                     row = {}
-                row["classification"] = c.get("category", "")
+                row["classification"] = c.get("classification", "")
                 row["confidence"] = c.get("confidence", "")
                 row["action"] = c.get("action", "")
                 row["reason"] = c.get("reason", "")
