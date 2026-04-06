@@ -29,7 +29,7 @@ def get_ai_logger():
     if getattr(sys, "frozen", False):
         log_dir = Path(sys._MEIPASS).parent.parent / "logs"
     else:
-        log_dir = Path(__file__).parent.parent.parent / "logs"
+        log_dir = Path(__file__).parent.parent.parent.parent / "logs"
 
     try:
         log_dir.mkdir(parents=True, exist_ok=True)

@@ -15,7 +15,7 @@ from flask import Blueprint, jsonify, request, Response, send_file
 if getattr(sys, "frozen", False):
     _app_root = Path(sys._MEIPASS).parent.parent
 else:
-    _app_root = Path(__file__).parent.parent.parent
+    _app_root = Path(__file__).parent.parent.parent.parent
 
 sys.path.insert(0, str(_app_root))
 
@@ -44,6 +44,20 @@ get_comments_handler = logging.FileHandler(
 get_comments_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
 get_comments_logger.addHandler(get_comments_handler)
 get_comments_logger.setLevel(logging.INFO)
+
+reply_logger = logging.getLogger("reply")
+
+reply_handler = logging.FileHandler(
+    os.path.join(
+        _app_root,
+        "logs",
+        f"reply_{time.strftime('%Y-%m-%d')}.log",
+    ),
+    encoding="utf-8",
+)
+reply_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
+reply_logger.addHandler(reply_handler)
+reply_logger.setLevel(logging.INFO)
 
 comment_bp = Blueprint("comment", __name__, url_prefix="/api")
 
@@ -806,6 +820,10 @@ def reply_direct():
     _reply_sender = ReplySender(service)
     _reply_sender.start(comments_to_reply, task.url)
 
+    reply_logger.info(
+        f"[回复任务开始] 来源: CSV文件, 文件: {classified_file}, 数量: {len(comments_to_reply)}, URL: {task.url}"
+    )
+
     return jsonify(
         ApiResponse(success=True, data={"to_reply": len(comments_to_reply)}).to_dict()
     )
@@ -830,6 +848,14 @@ def reply_confirm():
     service = XiaohongshuService()
     _reply_sender = ReplySender(service)
     _reply_sender.start(comments, url)
+
+    reply_logger.info(
+        f"[回复任务开始] 来源: 手动确认, 数量: {len(comments)}, URL: {url}"
+    )
+    for c in comments:
+        reply_logger.info(
+            f"[待回复] 评论ID: {c.get('comment_id', '')}, 用户: {c.get('user_nickname', '')}, 内容: {c.get('reply_text', '')[:50]}"
+        )
 
     return jsonify(ApiResponse(success=True, data={"status": "running"}).to_dict())
 
@@ -873,3 +899,57 @@ def set_whitelist():
     if save_whitelist(user_ids):
         return jsonify(ApiResponse(success=True, message="白名单已保存").to_dict())
     return jsonify(ApiResponse(success=False, error="保存失败").to_dict()), 500
+
+
+@comment_bp.route("/config", methods=["GET"])
+def get_config():
+    """获取配置"""
+    from ..config import Config
+
+    return jsonify(
+        ApiResponse(
+            success=True,
+            data={
+                "minimax_api_key": Config.MINIMAX_API_KEY,
+                "minimax_base_url": Config.MINIMAX_BASE_URL,
+            },
+        ).to_dict()
+    )
+
+
+@comment_bp.route("/config", methods=["POST"])
+def save_config():
+    """保存配置"""
+    data = request.get_json()
+    minimax_api_key = data.get("minimax_api_key", "").strip()
+    minimax_base_url = data.get("minimax_base_url", "").strip()
+
+    if not minimax_api_key:
+        return jsonify(
+            ApiResponse(success=False, error="API Key 不能为空").to_dict()
+        ), 400
+
+    if not minimax_base_url:
+        minimax_base_url = "https://api.minimaxi.com/v1"
+
+    env_file = _app_root / ".env"
+    try:
+        with open(env_file, "w", encoding="utf-8") as f:
+            f.write(f"# MinMax API Key (用于评论分类)\n")
+            f.write(
+                f"# 获取方式: https://platform.minimaxi.com/user-center/basic-information/interface-key\n"
+            )
+            f.write(f"MINIMAX_API_KEY={minimax_api_key}\n")
+            f.write(f"MINIMAX_BASE_URL={minimax_base_url}\n")
+
+        from ..config import Config
+
+        Config.MINIMAX_API_KEY = minimax_api_key
+        Config.MINIMAX_BASE_URL = minimax_base_url
+
+        return jsonify(ApiResponse(success=True, message="配置已保存").to_dict())
+    except Exception as e:
+        logger.error(f"保存配置失败: {e}")
+        return jsonify(
+            ApiResponse(success=False, error=f"保存失败: {e}").to_dict()
+        ), 500

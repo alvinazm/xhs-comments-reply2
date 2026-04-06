@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 if getattr(sys, "frozen", False):
     _config_base = Path(sys._MEIPASS)
 else:
-    _config_base = Path(__file__).parent.parent
+    _config_base = Path(__file__).parent.parent.parent
 
 env_path = _config_base / ".env"
 load_dotenv(env_path)

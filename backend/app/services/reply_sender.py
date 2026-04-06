@@ -1,6 +1,10 @@
+import logging
 import random
 import threading
 import time
+from pathlib import Path
+
+logger = logging.getLogger("reply")
 
 
 class ReplySender:
@@ -63,12 +67,18 @@ class ReplySender:
                         "user_nickname": c.get("user_nickname", ""),
                     },
                 )
+                logger.info(
+                    f"[回复成功] 评论ID: {c.get('comment_id', '')}, 用户: {c.get('user_nickname', '')}, 回复内容: {c.get('reply_text', '')[:50]}"
+                )
                 if i < len(self.comments) - 1:
                     time.sleep(random.uniform(3, 8))
         except Exception as e:
             for c in self.comments:
                 c["error"] = str(e)
                 self.failed.append(c)
+                logger.error(
+                    f"[回复失败] 评论ID: {c.get('comment_id', '')}, 用户: {c.get('user_nickname', '')}, 错误: {e}"
+                )
 
         self.running = False
         self._emit(
@@ -78,6 +88,9 @@ class ReplySender:
                 "failed": len(self.failed),
                 "failed_list": self.failed,
             },
+        )
+        logger.info(
+            f"[回复任务完成] 成功: {self.sended_cnt}, 失败: {len(self.failed)}, URL: {self.target_url}"
         )
 
     def stop(self):
