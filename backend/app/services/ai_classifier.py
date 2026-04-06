@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional, Callable
 
-from ..config import Config
+from config import Config
 
 logger = logging.getLogger("ai_classifier")
 

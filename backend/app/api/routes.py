@@ -361,68 +361,6 @@ def reply_comment():
         ), 500
 
 
-@comment_bp.route("/download-comments-csv", methods=["POST"])
-def download_comments_csv():
-    """下载评论 CSV。"""
-    data = request.get_json()
-    url = data.get("url", "")
-    max_comments = data.get("max_comments", 99999)
-
-    try:
-        req = CommentRequest(url=url, max_comments=max_comments)
-        service = XiaohongshuService()
-
-        note, comments, total = service.get_comments(req.url, req.max_comments)
-
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(
-            [
-                "评论人用户名",
-                "评论人ID",
-                "评论内容",
-                "评论ID",
-                "评论时间",
-                "所在地址",
-                "点赞量",
-            ]
-        )
-
-        for c in comments:
-            if not c.content or not c.content.strip():
-                continue
-            writer.writerow(
-                [
-                    c.user_nickname,
-                    c.user_id,
-                    c.content,
-                    c.id,
-                    time.strftime(
-                        "%Y-%m-%d %H:%M:%S", time.localtime(int(c.create_time))
-                    )
-                    if c.create_time
-                    else "",
-                    c.ip_location,
-                    c.like_count,
-                ]
-            )
-
-        output.seek(0)
-        return Response(
-            output.getvalue(),
-            mimetype="text/csv",
-            headers={
-                "Content-Disposition": f"attachment; filename=comments_{note.note_id}.csv"
-            },
-        )
-
-    except Exception as e:
-        logger.error("下载 CSV 失败: %s", e)
-        return jsonify(
-            ApiResponse(success=False, error=f"下载 CSV 失败: {e!s}").to_dict()
-        ), 500
-
-
 @comment_bp.route("/download-cached-csv", methods=["POST"])
 def download_cached_csv():
     """下载已缓存的评论 CSV。"""
@@ -609,6 +547,16 @@ def start_classify(task_id: str):
     if task.classification_status == "running":
         return jsonify(
             ApiResponse(success=False, error="分类正在进行中").to_dict()
+        ), 400
+
+    from ..services.ai_classifier import load_config
+
+    api_key, base_url = load_config()
+    if not api_key:
+        return jsonify(
+            ApiResponse(
+                success=False, error="MiniMax API Key 未配置，请先在设置中配置"
+            ).to_dict()
         ), 400
 
     data = request.get_json() or {}
@@ -904,7 +852,7 @@ def set_whitelist():
 @comment_bp.route("/config", methods=["GET"])
 def get_config():
     """获取配置"""
-    from ..config import Config
+    from config import Config
 
     return jsonify(
         ApiResponse(
@@ -942,7 +890,7 @@ def save_config():
             f.write(f"MINIMAX_API_KEY={minimax_api_key}\n")
             f.write(f"MINIMAX_BASE_URL={minimax_base_url}\n")
 
-        from ..config import Config
+        from config import Config
 
         Config.MINIMAX_API_KEY = minimax_api_key
         Config.MINIMAX_BASE_URL = minimax_base_url
