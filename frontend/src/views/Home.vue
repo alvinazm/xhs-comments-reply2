@@ -527,6 +527,8 @@ const handleClassify = async (task) => {
     pollClassificationStatus(task.task_id)
   } catch (e) {
     console.error('分类失败', e)
+    alert(`分类失败: ${e.message}`)
+    await exportStore.fetchTasks()
   }
 }
 
