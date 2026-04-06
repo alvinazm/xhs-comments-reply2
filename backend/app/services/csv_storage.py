@@ -34,6 +34,23 @@ def save_comments_to_csv(comments: List) -> str:
 
     file_path = os.path.join(DOWNLOAD_DIR, f"xhs_comments_{session_id}.csv")
 
+    def format_comment_time(ts):
+        if not ts:
+            return ""
+        if isinstance(ts, str):
+            if "-" in ts and ":" in ts:
+                return ts
+            try:
+                ts = int(ts)
+            except (ValueError, TypeError):
+                return ts
+        try:
+            if ts > 1e12:
+                ts = ts / 1000
+            return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
+        except (ValueError, OSError):
+            return str(ts)
+
     with open(file_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
         writer.writerow(CSV_HEADERS)
@@ -47,11 +64,7 @@ def save_comments_to_csv(comments: List) -> str:
                     c.user_id,
                     c.content,
                     c.id,
-                    time.strftime(
-                        "%Y-%m-%d %H:%M:%S", time.localtime(int(c.create_time))
-                    )
-                    if c.create_time
-                    else "",
+                    format_comment_time(c.create_time),
                     c.ip_location,
                     c.like_count,
                 ]

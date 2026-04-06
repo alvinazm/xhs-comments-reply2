@@ -147,6 +147,23 @@ def get_comments():
             ]
         )
 
+        def format_comment_time(ts):
+            if not ts:
+                return ""
+            if isinstance(ts, str):
+                if "-" in ts and ":" in ts:
+                    return ts
+                try:
+                    ts = int(ts)
+                except (ValueError, TypeError):
+                    return ts
+            try:
+                if ts > 1e12:
+                    ts = ts / 1000
+                return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
+            except (ValueError, OSError):
+                return str(ts)
+
         for c in comments:
             if not c.content or not c.content.strip():
                 continue
@@ -156,11 +173,7 @@ def get_comments():
                     c.user_id,
                     c.content,
                     c.id,
-                    time.strftime(
-                        "%Y-%m-%d %H:%M:%S", time.localtime(int(c.create_time))
-                    )
-                    if c.create_time
-                    else "",
+                    format_comment_time(c.create_time),
                     c.ip_location,
                     c.like_count,
                 ]

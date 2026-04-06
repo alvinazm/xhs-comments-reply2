@@ -29,7 +29,7 @@ def get_ai_logger():
     if getattr(sys, "frozen", False):
         log_dir = Path(sys._MEIPASS).parent.parent / "logs"
     else:
-        log_dir = Path(__file__).parent.parent.parent.parent / "logs"
+        log_dir = Path(__file__).parent.parent.parent / "logs"
 
     try:
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -77,10 +77,9 @@ def load_prompt(prompt_path: str) -> str:
     path = Path(prompt_path)
     if not path.is_absolute():
         if getattr(sys, "frozen", False):
-            # In frozen bundle, prompts are at Contents/Resources/prompts/
             path = Path(sys._MEIPASS) / "prompts" / Path(prompt_path).name
         else:
-            path = Path(__file__).parent.parent.parent / prompt_path
+            path = Path(__file__).parent.parent.parent.parent / prompt_path
 
     if not path.exists():
         raise FileNotFoundError(f"Prompt file not found: {path}")
