@@ -865,6 +865,22 @@ def get_prompt_config():
     return jsonify(ApiResponse(success=True, data={"prompt_text": ""}).to_dict())
 
 
+@comment_bp.route("/config/prompt/default", methods=["GET"])
+def get_default_prompt_config():
+    """获取默认提示词配置"""
+    default_path = _app_root / "backend" / "prompts" / "classifier-copy.md"
+    try:
+        if default_path.exists():
+            with open(default_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            return jsonify(
+                ApiResponse(success=True, data={"prompt_text": content}).to_dict()
+            )
+    except Exception as e:
+        logger.error(f"读取默认提示词配置失败: {e}")
+    return jsonify(ApiResponse(success=True, data={"prompt_text": ""}).to_dict())
+
+
 @comment_bp.route("/config/prompt", methods=["POST"])
 def save_prompt_config():
     """保存提示词配置"""

@@ -94,6 +94,10 @@ export const xhsApi = {
     return apiClient.get('/config/prompt')
   },
 
+  getDefaultPromptConfig() {
+    return apiClient.get('/config/prompt/default')
+  },
+
   savePromptConfig(assembledPrompt) {
     return apiClient.post('/config/prompt', { prompt_text: assembledPrompt })
   },
