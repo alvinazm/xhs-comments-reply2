@@ -341,7 +341,7 @@
         
         <div v-if="activeSettingsTab === 'prompt'" class="space-y-4">
           <div>
-            <h4 class="text-md font-semibold mb-2 text-gray-800">分类标准</h4>
+            <h4 class="text-md font-semibold mb-2 text-gray-800">分类标准 <span class="text-red-500">*</span></h4>
             <p class="text-xs text-gray-500 mb-2">定义评论分类类别和描述</p>
             <div class="space-y-2">
               <div v-for="(rule, index) in promptConfig.classificationRules" :key="index" class="flex gap-2 items-center">
@@ -380,7 +380,7 @@
           </div>
           
           <div>
-            <h4 class="text-md font-semibold mb-2 text-gray-800">置信度规则</h4>
+            <h4 class="text-md font-semibold mb-2 text-gray-800">置信度规则 <span class="text-red-500">*</span></h4>
             <p class="text-xs text-gray-500 mb-2">配置置信度分数区间和对应描述</p>
             <div class="space-y-2">
               <div v-for="(rule, index) in promptConfig.confidenceRules" :key="index" class="flex gap-2 items-center">
@@ -419,7 +419,18 @@
           </div>
           
           <div>
-            <h4 class="text-md font-semibold mb-2 text-gray-800">回复策略</h4>
+            <h4 class="text-md font-semibold mb-2 text-gray-800">回复视角 <span class="text-red-500">*</span></h4>
+            <p class="text-xs text-gray-500 mb-2">以博主或第三方视角生成回复</p>
+            <textarea
+              v-model="promptConfig.systemPrompt"
+              rows="3"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent text-sm"
+              placeholder="以博主的身份生成回复内容，当评论为索要资料时，回复..."
+            ></textarea>
+          </div>
+          
+          <div>
+            <h4 class="text-md font-semibold mb-2 text-gray-800">回复策略 <span class="text-red-500">*</span></h4>
             <p class="text-xs text-gray-500 mb-2">设置每个分类的回复动作（根据分类标准自动更新）</p>
             <div class="space-y-2">
               <div v-for="(action, category) in promptConfig.replyStrategy" :key="category" class="flex items-center gap-4 p-2 bg-gray-50 rounded-lg">
@@ -629,6 +640,7 @@ const promptConfig = ref({
   classificationRules: JSON.parse(JSON.stringify(defaultClassificationRules)),
   confidenceRules: JSON.parse(JSON.stringify(defaultConfidenceRules)),
   replyStrategy: { ...defaultReplyStrategy },
+  systemPrompt: '',
 })
 
 const displayedComments = computed(() => {
@@ -636,6 +648,8 @@ const displayedComments = computed(() => {
 })
 
 const assembledPrompt = computed(() => {
+  const systemPrompt = promptConfig.value.systemPrompt.trim()
+  
   const criteriaLines = promptConfig.value.classificationRules
     .filter(r => r.category && r.description)
     .map(r => `- ${r.category}: ${r.description}`)
@@ -670,7 +684,7 @@ const assembledPrompt = computed(() => {
   }
 ]`
   
-  return `你是一个小红书评论分类器。将每条评论分类到以下类别：
+  return `你是一个评论分类及自动生成回复器。将每条评论分类到以下类别：
 
 **分类标准：**
 ${criteriaLines}
@@ -681,11 +695,14 @@ ${outputFormatJson}
 \`\`\`
 
 **重要：generated_reply字段必须始终存在**：
-- 当action="回复"时，generated_reply应包含具体的回复内容（中文，不超过50字）
+- 当action="回复"时，generated_reply应包含具体的回复内容（中文，不超过250个字）
 - 当action="忽略"时，generated_reply为空字符串""
 
 **置信度规则：**
 ${rulesLines}
+
+**重要：回复视角**
+${systemPrompt}
 
 **回复策略：**
 ${strategyLines}
@@ -1088,6 +1105,13 @@ const saveConfig = async () => {
 const parsePromptToStructuredData = (promptText) => {
   if (!promptText) return
 
+  const systemPromptMatch = promptText.match(/\*\*重要：系统提示\*\*(.*?)(\*\*回复策略：\*\*)/s)
+  if (systemPromptMatch) {
+    promptConfig.value.systemPrompt = systemPromptMatch[1].trim()
+  } else {
+    promptConfig.value.systemPrompt = ''
+  }
+
   const classificationRules = []
   const criteriaMatch = promptText.match(/\*\*分类标准：\*\*(.*?)(?=\*\*输出格式：\*\*|\n\n)/s)
   if (criteriaMatch) {
@@ -1158,6 +1182,23 @@ const updateReplyStrategyFromCriteria = () => {
 }
 
 const savePromptSettings = async () => {
+  if (!promptConfig.value.systemPrompt.trim()) {
+    alert('系统提示不能为空')
+    return
+  }
+  
+  const hasEmptyCategory = promptConfig.value.classificationRules.some(r => !r.category.trim() || !r.description.trim())
+  if (hasEmptyCategory) {
+    alert('分类标准的类别和描述都不能为空')
+    return
+  }
+  
+  const hasEmptyRule = promptConfig.value.confidenceRules.some(r => !r.range.trim() || !r.description.trim())
+  if (hasEmptyRule) {
+    alert('置信度规则的分数区间和描述都不能为空')
+    return
+  }
+  
   savingPrompt.value = true
   try {
     await xhsApi.savePromptConfig(assembledPrompt.value)
