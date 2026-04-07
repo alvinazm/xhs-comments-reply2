@@ -849,6 +849,50 @@ def set_whitelist():
     return jsonify(ApiResponse(success=False, error="保存失败").to_dict()), 500
 
 
+@comment_bp.route("/config/prompt", methods=["GET"])
+def get_prompt_config():
+    """获取提示词配置"""
+    classifier_path = _app_root / "backend" / "prompts" / "classifier.md"
+    try:
+        if classifier_path.exists():
+            with open(classifier_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            return jsonify(
+                ApiResponse(success=True, data={"prompt_text": content}).to_dict()
+            )
+    except Exception as e:
+        logger.error(f"读取提示词配置失败: {e}")
+    return jsonify(ApiResponse(success=True, data={"prompt_text": ""}).to_dict())
+
+
+@comment_bp.route("/config/prompt", methods=["POST"])
+def save_prompt_config():
+    """保存提示词配置"""
+    data = request.get_json() or {}
+    prompt_text = data.get("prompt_text", "")
+
+    if not prompt_text:
+        return jsonify(
+            ApiResponse(success=False, error="提示词内容不能为空").to_dict()
+        ), 400
+
+    try:
+        classifier_path = _app_root / "backend" / "prompts" / "classifier.md"
+        classifier_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(classifier_path, "w", encoding="utf-8") as f:
+            f.write(prompt_text)
+
+        logger.info(f"[PROMPT] Saved classifier.md")
+
+        return jsonify(ApiResponse(success=True, message="提示词已保存").to_dict())
+    except Exception as e:
+        logger.error(f"保存提示词配置失败: {e}")
+        return jsonify(
+            ApiResponse(success=False, error=f"保存失败: {e}").to_dict()
+        ), 500
+
+
 @comment_bp.route("/config", methods=["GET"])
 def get_config():
     """获取配置"""
