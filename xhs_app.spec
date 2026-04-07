@@ -18,9 +18,7 @@ a = Analysis(
         (str(dist_backend / "prompts"), "prompts"),
         (str(dist_backend / "config.py"), "."),
         (str(project_root / "backend" / "static"), "static"),
-        (str(project_root / ".env"), "."),
         (str(project_root / "config.json"), "."),
-        (str(project_root / "config.yaml"), "."),
     ],
     hiddenimports=[
         "flask", "flask_cors", "requests", "websockets", "apscheduler",

@@ -6,6 +6,16 @@ echo "=== XHS 评论助手打包脚本 ==="
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+if [ ! -f ".env" ]; then
+    echo "  创建默认 .env 文件..."
+    cat > .env << 'EOF'
+# MinMax API Key (用于评论分类)
+# 获取方式: https://platform.minimaxi.com/user-center/basic-information/interface-key
+MINIMAX_API_KEY=your_minimax_api_key
+MINIMAX_BASE_URL=https://api.minimax.chat/v1
+EOF
+fi
+
 echo "0/5 检查并准备虚拟环境..."
 if [ ! -d "venv" ]; then
     echo "  创建虚拟环境..."
