@@ -20,10 +20,10 @@ os.environ["PYARMOR_HOME"] = str(bundle_dir / ".pyarmor")
 sys.path.insert(0, str(bundle_dir))
 sys.path.insert(0, str(bundle_dir / "app"))
 
-logs_dir = app_dir / "logs"
+logs_dir = app_dir.parent / "logs"
 logs_dir.mkdir(exist_ok=True)
 
-download_dir = app_dir / "download"
+download_dir = app_dir.parent / "download"
 download_dir.mkdir(exist_ok=True)
 
 config_file = app_dir / "config.json"

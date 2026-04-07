@@ -14,8 +14,10 @@ from flask import Blueprint, jsonify, request, Response, send_file
 
 if getattr(sys, "frozen", False):
     _app_root = Path(sys._MEIPASS)
+    _logs_root = Path(sys._MEIPASS).parent.parent
 else:
     _app_root = Path(__file__).parent.parent.parent.parent
+    _logs_root = _app_root
 
 sys.path.insert(0, str(_app_root))
 
@@ -31,11 +33,11 @@ logger = logging.getLogger("api")
 
 get_comments_logger = logging.getLogger("get_comments")
 
-os.makedirs(os.path.join(_app_root, "logs"), exist_ok=True)
+os.makedirs(os.path.join(_logs_root, "logs"), exist_ok=True)
 
 get_comments_handler = logging.FileHandler(
     os.path.join(
-        _app_root,
+        _logs_root,
         "logs",
         f"get_comments_{time.strftime('%Y-%m-%d')}.log",
     ),
@@ -49,7 +51,7 @@ reply_logger = logging.getLogger("reply")
 
 reply_handler = logging.FileHandler(
     os.path.join(
-        _app_root,
+        _logs_root,
         "logs",
         f"reply_{time.strftime('%Y-%m-%d')}.log",
     ),
