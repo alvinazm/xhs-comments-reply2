@@ -39,7 +39,7 @@ class Config:
         "CHROME_HOST", _chrome_cfg.get("host") if _chrome_cfg else None
     )
     CHROME_PORT = int(
-        os.getenv("CHROME_PORT", _chrome_cfg.get("port") if _chrome_cfg else 9222)
+        os.getenv("CHROME_PORT", _chrome_cfg.get("port") if _chrome_cfg else 9292)
     )
 
     FLASK_HOST = os.getenv(
