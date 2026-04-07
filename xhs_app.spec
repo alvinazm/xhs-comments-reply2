@@ -15,7 +15,7 @@ a = Analysis(
     datas=[
         (str(dist_backend / "app"), "app"),
         (str(dist_backend / "pyarmor_runtime_000000"), "pyarmor_runtime_000000"),
-        (str(dist_backend / "prompts"), "prompts"),
+        (str(dist_backend / "prompts"), "backend/prompts"),
         (str(dist_backend / "config.py"), "."),
         (str(project_root / "backend" / "static"), "static"),
         (str(project_root / "config.json"), "."),

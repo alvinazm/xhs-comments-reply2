@@ -1,12 +1,16 @@
 import json
 import os
+import sys
 import yaml
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(env_path)
+if getattr(sys, "frozen", False):
+    env_path = Path(sys._MEIPASS).parent / ".env"
+else:
+    env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(env_path, override=True)
 
 
 def load_yaml_config():

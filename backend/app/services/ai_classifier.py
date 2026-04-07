@@ -77,7 +77,7 @@ def load_prompt(prompt_path: str) -> str:
     path = Path(prompt_path)
     if not path.is_absolute():
         if getattr(sys, "frozen", False):
-            path = Path(sys._MEIPASS) / "prompts" / Path(prompt_path).name
+            path = Path(sys._MEIPASS) / prompt_path
         else:
             path = Path(__file__).parent.parent.parent.parent / prompt_path
 

@@ -13,7 +13,7 @@ import requests
 from flask import Blueprint, jsonify, request, Response, send_file
 
 if getattr(sys, "frozen", False):
-    _app_root = Path(sys._MEIPASS).parent.parent
+    _app_root = Path(sys._MEIPASS)
 else:
     _app_root = Path(__file__).parent.parent.parent.parent
 
@@ -940,7 +940,7 @@ def save_config():
     if not minimax_base_url:
         minimax_base_url = "https://api.minimaxi.com/v1"
 
-    env_file = _app_root / ".env"
+    env_file = _app_root.parent / ".env"
     try:
         with open(env_file, "w", encoding="utf-8") as f:
             f.write(f"# MinMax API Key (用于评论分类)\n")
