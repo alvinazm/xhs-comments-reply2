@@ -340,136 +340,29 @@
         </div>
         
         <div v-if="activeSettingsTab === 'prompt'" class="space-y-4">
-          <div>
-            <h4 class="text-md font-semibold mb-2 text-gray-800">分类标准 <span class="text-red-500">*</span></h4>
-            <p class="text-xs text-gray-500 mb-2">定义评论分类类别和描述</p>
-            <div class="space-y-2">
-              <div v-for="(rule, index) in promptConfig.classificationRules" :key="index" class="flex gap-2 items-center">
-                <input
-                  v-model="rule.category"
-                  type="text"
-                  class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent font-mono text-sm"
-                  placeholder="praise"
-                />
-                <input
-                  v-model="rule.description"
-                  type="text"
-                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent text-sm"
-                  placeholder="正面反馈、赞美、感谢"
-                />
-                <button
-                  v-if="promptConfig.classificationRules.length > 1"
-                  @click="removeClassificationRule(index)"
-                  class="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <button
-                @click="addClassificationRule"
-                class="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-600"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                添加分类
-              </button>
-            </div>
+          <div class="flex items-center justify-between">
+            <h4 class="text-md font-semibold text-gray-800">提示词内容</h4>
+            <button
+              @click="loadDefaultPrompt"
+              class="text-sm text-gray-500 hover:text-xhs-red transition-colors"
+            >
+              恢复默认
+            </button>
           </div>
-          
-          <div>
-            <h4 class="text-md font-semibold mb-2 text-gray-800">置信度规则 <span class="text-red-500">*</span></h4>
-            <p class="text-xs text-gray-500 mb-2">配置置信度分数区间和对应描述</p>
-            <div class="space-y-2">
-              <div v-for="(rule, index) in promptConfig.confidenceRules" :key="index" class="flex gap-2 items-center">
-                <input
-                  v-model="rule.range"
-                  type="text"
-                  class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent font-mono text-sm"
-                  placeholder="85-100"
-                />
-                <input
-                  v-model="rule.description"
-                  type="text"
-                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent text-sm"
-                  placeholder="分类明确"
-                />
-                <button
-                  v-if="promptConfig.confidenceRules.length > 1"
-                  @click="removeConfidenceRule(index)"
-                  class="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <button
-                @click="addConfidenceRule"
-                class="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-600"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                添加规则
-              </button>
-            </div>
-          </div>
-          
-          <div>
-            <h4 class="text-md font-semibold mb-2 text-gray-800">回复视角 <span class="text-red-500">*</span></h4>
-            <p class="text-xs text-gray-500 mb-2">以博主或第三方视角生成回复</p>
-            <textarea
-              v-model="promptConfig.systemPrompt"
-              rows="3"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent text-sm"
-              placeholder="以博主的身份生成回复内容，当评论为索要资料时，回复..."
-            ></textarea>
-          </div>
-          
-          <div>
-            <h4 class="text-md font-semibold mb-2 text-gray-800">回复策略 <span class="text-red-500">*</span></h4>
-            <p class="text-xs text-gray-500 mb-2">设置每个分类的回复动作（根据分类标准自动更新）</p>
-            <div class="space-y-2">
-              <div v-for="(action, category) in promptConfig.replyStrategy" :key="category" class="flex items-center gap-4 p-2 bg-gray-50 rounded-lg">
-                <span class="w-24 text-sm font-medium text-gray-700">{{ category }}</span>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    :name="'reply-action-' + category"
-                    value="reply"
-                    v-model="promptConfig.replyStrategy[category]"
-                    class="w-4 h-4 text-xhs-red focus:ring-xhs-red"
-                  />
-                  <span class="text-sm text-gray-600">回复</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    :name="'reply-action-' + category"
-                    value="ignore"
-                    v-model="promptConfig.replyStrategy[category]"
-                    class="w-4 h-4 text-xhs-red focus:ring-xhs-red"
-                  />
-                  <span class="text-sm text-gray-600">忽略</span>
-                </label>
-              </div>
-            </div>
-          </div>
-          
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p class="text-xs text-blue-700 mb-1 font-medium">预览：完整提示词</p>
-            <pre class="text-xs text-blue-800 whitespace-pre-wrap font-mono max-h-40 overflow-y-auto">{{ assembledPrompt }}</pre>
-          </div>
+          <p class="text-xs text-gray-500 mb-2">请按照示例填写提示词</p>
+          <textarea
+            v-model="promptText"
+            rows="20"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent text-sm font-mono"
+            placeholder="加载中..."
+          ></textarea>
           
           <button
             @click="savePromptSettings"
             :disabled="savingPrompt"
             class="w-full bg-xhs-red text-white py-2 px-4 rounded-lg hover:bg-red-600 disabled:opacity-50"
           >
-            {{ savingPrompt ? '保存中...' : '保存提示词设置' }}
+            {{ savingPrompt ? '保存中...' : '保存提示词' }}
           </button>
         </div>
         
@@ -585,146 +478,13 @@ const minimaxBaseUrl = ref('')
 const savingConfig = ref(false)
 const activeSettingsTab = ref('prompt')
 const savingPrompt = ref(false)
-
-const defaultOutputFormat = `返回纯JSON数组，无任何额外文本。
-\`\`\`json
-[
-  {
-    "id": "c0",
-    "category": "praise|question|neutral|constructive|spam|hate",
-    "confidence": 85,
-    "reason": "简要原因（中文）",
-    "action": "回复|忽略",
-    "generated_reply": "建议的回复内容（如需回复），中文，不超过50字。如果action为"忽略"，则generated_reply为空字符串"
-  }
-]
-\`\`\`
-
-**重要：generated_reply字段必须始终存在**：
-- 当action="回复"时，generated_reply应包含具体的回复内容（中文，不超过50字）
-- 当action="忽略"时，generated_reply为空字符串""`
-
-const defaultClassificationCriteria = `- praise: 正面反馈、赞美、感谢
-- question: 提问、询问信息
-- neutral: 通用反应（笑哈哈、哇）、仅表情包
-- constructive: 建设性批评、建议、详细反馈
-- spam: 推广链接、垃圾信息、机器人重复内容
-- hate: 仇恨、侮辱、威胁、攻击性言论`
-
-const defaultClassificationRules = [
-  { category: 'praise', description: '正面反馈、赞美、感谢' },
-  { category: 'question', description: '提问、询问信息' },
-  { category: 'neutral', description: '通用反应（笑哈哈、哇）、仅表情包' },
-  { category: 'constructive', description: '建设性批评、建议、详细反馈' },
-  { category: 'spam', description: '推广链接、垃圾信息、机器人重复内容' },
-  { category: 'hate', description: '仇恨、侮辱、威胁、攻击性言论' },
-]
-
-const defaultConfidenceRules = [
-  { range: '85-100', description: '分类明确' },
-  { range: '60-84', description: '较确定，可能有歧义' },
-  { range: '0-59', description: '存在歧义，选择最可能的类别' },
-]
-
-const defaultReplyStrategy = {
-  praise: 'reply',
-  question: 'reply',
-  neutral: 'ignore',
-  constructive: 'reply',
-  spam: 'ignore',
-  hate: 'ignore',
-}
-
-const promptConfig = ref({
-  classificationCriteria: defaultClassificationCriteria,
-  classificationRules: JSON.parse(JSON.stringify(defaultClassificationRules)),
-  confidenceRules: JSON.parse(JSON.stringify(defaultConfidenceRules)),
-  replyStrategy: { ...defaultReplyStrategy },
-  systemPrompt: '',
-})
+const promptText = ref('')
 
 const displayedComments = computed(() => {
   return comments.value.slice(0, displayedCount)
 })
 
-const assembledPrompt = computed(() => {
-  const systemPrompt = promptConfig.value.systemPrompt.trim()
-  
-  const criteriaLines = promptConfig.value.classificationRules
-    .filter(r => r.category && r.description)
-    .map(r => `- ${r.category}: ${r.description}`)
-    .join('\n')
-  
-  const categories = promptConfig.value.classificationRules
-    .filter(r => r.category)
-    .map(r => r.category)
-    .join('|')
-  
-  const rules = promptConfig.value.confidenceRules
-  const strategy = promptConfig.value.replyStrategy
-  
-  const strategyLines = Object.entries(strategy)
-    .filter(([cat]) => categories.includes(cat))
-    .map(([cat, action]) => `- ${cat} → action: "${action === 'reply' ? '回复' : '忽略'}"`)
-    .join('\n')
-  
-  const rulesLines = rules
-    .filter(r => r.range && r.description)
-    .map(r => `- ${r.range}: ${r.description}`)
-    .join('\n')
-  
-  const outputFormatJson = `[
-  {
-    "id": "c0",
-    "category": "${categories || 'category'}",
-    "confidence": 85,
-    "reason": "简要原因（中文）",
-    "action": "回复|忽略",
-    "generated_reply": "建议的回复内容（如需回复），中文，不超过50字。如果action为"忽略"，则generated_reply为空字符串"
-  }
-]`
-  
-  return `你是一个评论分类及自动生成回复器。将每条评论分类到以下类别：
 
-**分类标准：**
-${criteriaLines}
-
-**输出格式：** 返回纯JSON数组，无任何额外文本。
-\`\`\`json
-${outputFormatJson}
-\`\`\`
-
-**重要：generated_reply字段必须始终存在**：
-- 当action="回复"时，generated_reply应包含具体的回复内容（中文，不超过250个字）
-- 当action="忽略"时，generated_reply为空字符串""
-
-**置信度规则：**
-${rulesLines}
-
-**重要：回复视角**
-${systemPrompt}
-
-**回复策略：**
-${strategyLines}
-
-只返回JSON数组，不要markdown格式，不要解释。`
-})
-
-const addConfidenceRule = () => {
-  promptConfig.value.confidenceRules.push({ range: '', description: '' })
-}
-
-const removeConfidenceRule = (index) => {
-  promptConfig.value.confidenceRules.splice(index, 1)
-}
-
-const addClassificationRule = () => {
-  promptConfig.value.classificationRules.push({ category: '', description: '' })
-}
-
-const removeClassificationRule = (index) => {
-  promptConfig.value.classificationRules.splice(index, 1)
-}
 
 const goToExportHistory = async () => {
   if (!url.value) {
@@ -1102,117 +862,44 @@ const saveConfig = async () => {
   }
 }
 
-const parsePromptToStructuredData = (promptText) => {
-  if (!promptText) return
-
-  const systemPromptMatch = promptText.match(/\*\*重要：回复视角\*\*(.*?)(\*\*回复策略：\*\*)/s)
-  if (systemPromptMatch) {
-    promptConfig.value.systemPrompt = systemPromptMatch[1].trim()
-  } else {
-    promptConfig.value.systemPrompt = ''
-  }
-
-  const classificationRules = []
-  const criteriaMatch = promptText.match(/\*\*分类标准：\*\*(.*?)(?=\*\*输出格式：\*\*|\n\n)/s)
-  if (criteriaMatch) {
-    const lines = criteriaMatch[1].trim().split('\n')
-    lines.forEach(line => {
-      const match = line.match(/^-\s*(\w+):\s*(.+)/)
-      if (match) {
-        classificationRules.push({ category: match[1], description: match[2] })
-      }
-    })
-  }
-  if (classificationRules.length > 0) {
-    promptConfig.value.classificationRules = classificationRules
-  }
-
-  const confidenceRules = []
-  const confMatch = promptText.match(/\*\*置信度规则：\*\*(.*?)\*\*/s)
-  if (confMatch) {
-    const lines = confMatch[1].trim().split('\n')
-    lines.forEach(line => {
-      const match = line.match(/^-\s*(\d+-\d+):\s*(.+)/)
-      if (match) {
-        confidenceRules.push({ range: match[1], description: match[2] })
-      }
-    })
-  }
-  if (confidenceRules.length > 0) {
-    promptConfig.value.confidenceRules = confidenceRules
-  }
-
-  const replyStrategy = {}
-  const strategyMatch = promptText.match(/\*\*回复策略：\*\*(.*?)(?=只返回JSON|$)/s)
-  if (strategyMatch) {
-    const lines = strategyMatch[1].trim().split('\n')
-    lines.forEach(line => {
-      const match = line.match(/^-\s*(\w+)\s*→\s*action:\s*"(.+?)"/)
-      if (match) {
-        replyStrategy[match[1]] = match[2] === '回复' ? 'reply' : 'ignore'
-      }
-    })
-  }
-  if (Object.keys(replyStrategy).length > 0) {
-    promptConfig.value.replyStrategy = replyStrategy
-  }
-}
-
 const loadPromptConfig = async () => {
   try {
     const res = await xhsApi.getPromptConfig()
     if (res.success && res.data && res.data.prompt_text) {
-      parsePromptToStructuredData(res.data.prompt_text)
+      promptText.value = res.data.prompt_text
     }
   } catch (e) {
     console.error('加载提示词配置失败', e)
   }
 }
 
-const updateReplyStrategyFromCriteria = () => {
-  const rules = promptConfig.value.classificationRules
-  const currentCategories = rules.map(r => r.category).filter(c => c)
-  
-  const newStrategy = {}
-  currentCategories.forEach(cat => {
-    newStrategy[cat] = promptConfig.value.replyStrategy[cat] || 'reply'
-  })
-  
-  promptConfig.value.replyStrategy = newStrategy
+const loadDefaultPrompt = async () => {
+  try {
+    const res = await xhsApi.getDefaultPromptConfig()
+    if (res.success && res.data && res.data.prompt_text) {
+      promptText.value = res.data.prompt_text
+    }
+  } catch (e) {
+    console.error('加载默认提示词配置失败', e)
+  }
 }
 
 const savePromptSettings = async () => {
-  if (!promptConfig.value.systemPrompt.trim()) {
-    alert('回复视角不能为空')
-    return
-  }
-  
-  const hasEmptyCategory = promptConfig.value.classificationRules.some(r => !r.category.trim() || !r.description.trim())
-  if (hasEmptyCategory) {
-    alert('分类标准的类别和描述都不能为空')
-    return
-  }
-  
-  const hasEmptyRule = promptConfig.value.confidenceRules.some(r => !r.range.trim() || !r.description.trim())
-  if (hasEmptyRule) {
-    alert('置信度规则的分数区间和描述都不能为空')
+  if (!promptText.value.trim()) {
+    alert('提示词内容不能为空')
     return
   }
   
   savingPrompt.value = true
   try {
-    await xhsApi.savePromptConfig(assembledPrompt.value)
-    alert('提示词配置已保存')
+    await xhsApi.savePromptConfig(promptText.value)
+    alert('提示词已保存')
   } catch (e) {
     alert('保存失败: ' + e.message)
   } finally {
     savingPrompt.value = false
   }
 }
-
-watch(() => promptConfig.value.classificationRules, () => {
-  updateReplyStrategyFromCriteria()
-}, { deep: true })
 
 onMounted(() => {
   checkChromeStatus()
