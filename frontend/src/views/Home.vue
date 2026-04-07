@@ -1105,7 +1105,7 @@ const saveConfig = async () => {
 const parsePromptToStructuredData = (promptText) => {
   if (!promptText) return
 
-  const systemPromptMatch = promptText.match(/\*\*重要：系统提示\*\*(.*?)(\*\*回复策略：\*\*)/s)
+  const systemPromptMatch = promptText.match(/\*\*重要：回复视角\*\*(.*?)(\*\*回复策略：\*\*)/s)
   if (systemPromptMatch) {
     promptConfig.value.systemPrompt = systemPromptMatch[1].trim()
   } else {
@@ -1183,7 +1183,7 @@ const updateReplyStrategyFromCriteria = () => {
 
 const savePromptSettings = async () => {
   if (!promptConfig.value.systemPrompt.trim()) {
-    alert('系统提示不能为空')
+    alert('回复视角不能为空')
     return
   }
   
