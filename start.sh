@@ -6,11 +6,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$SCRIPT_DIR"
 
 if [ -f "$PROJECT_DIR/config.json" ]; then
-    CHROME_PORT=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/config.json'))['chrome']['port'])" 2>/dev/null || echo 9222)
+    CHROME_PORT=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/config.json'))['chrome']['port'])" 2>/dev/null || echo 9292)
     BACKEND_PORT=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/config.json'))['backend']['port'])" 2>/dev/null || echo 3030)
     FRONTEND_PORT=$(python3 -c "import json; print(json.load(open('$PROJECT_DIR/config.json'))['frontend']['port'])" 2>/dev/null || echo 5050)
 else
-    CHROME_PORT=9222
+    CHROME_PORT=9292
     BACKEND_PORT=3030
     FRONTEND_PORT=5050
 fi
@@ -55,7 +55,7 @@ start_backend() {
 }
 
 start_frontend() {
-    echo -e "${YELLOW}构建前端...${NC}"
+    echo -e "${YELLOW}启动前端开发服务器...${NC}"
     cd "$PROJECT_DIR/frontend"
     
     if [ ! -d "node_modules" ]; then
@@ -63,14 +63,11 @@ start_frontend() {
         npm install
     fi
     
-    echo -e "${YELLOW}重新构建前端静态文件...${NC}"
-    npm run build
-    
-    echo -e "${YELLOW}复制前端文件到后端 static 目录...${NC}"
-    mkdir -p "$PROJECT_DIR/backend/static"
-    cp -r "$PROJECT_DIR/frontend/dist/"* "$PROJECT_DIR/backend/static/"
-    
-    echo -e "${GREEN}前端构建完成${NC}"
+    echo -e "${YELLOW}启动 Vite 开发服务器 (port=$FRONTEND_PORT)...${NC}"
+    npm run dev >> "$PROJECT_DIR/logs/frontend_$(date +%Y-%m-%d).log" 2>&1 &
+    FRONTEND_PID=$!
+    echo $FRONTEND_PID > /tmp/xhs_frontend.pid
+    echo -e "${GREEN}前端已启动 (PID: $FRONTEND_PID, port=$FRONTEND_PORT)${NC}"
 }
 
 stop() {
