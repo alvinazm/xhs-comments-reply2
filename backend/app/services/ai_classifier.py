@@ -120,10 +120,14 @@ def extract_json(text: str) -> str:
 
 
 def load_config() -> tuple:
-    """加载MiniMax API配置。"""
-    api_key = Config.MINIMAX_API_KEY
-    base_url = Config.MINIMAX_BASE_URL
-    return api_key, base_url
+    from config import env_path
+    from dotenv import load_dotenv
+    import os
+
+    load_dotenv(env_path, override=True)
+    return os.getenv("MINIMAX_API_KEY", ""), os.getenv(
+        "MINIMAX_BASE_URL", "https://api.minimax.chat/v1"
+    )
 
 
 def get_prompt_config() -> dict:
