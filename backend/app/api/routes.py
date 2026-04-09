@@ -935,11 +935,51 @@ def upload_video():
     video_file = request.files.get("video")
     title = request.form.get("title", "").strip()
     description = request.form.get("description", "").strip()
+    platform = request.form.get("platform", "xiaohongshu").strip()
 
     if not video_file:
         return jsonify(
             ApiResponse(success=False, error="请选择视频文件").to_dict()
         ), 400
+
+    platform_config = {
+        "xiaohongshu": {
+            "name": "小红书",
+            "url": "https://creator.xiaohongshu.com/publish/publish?source=official&from=menu&target=video",
+            "file_selectors": [
+                'input[type="file"]',
+                'input[type="file"][accept*="video"]',
+                ".upload-input",
+                "#upload-input",
+            ],
+            "title_selectors": [
+                'input[placeholder*="标题"]',
+                'input[placeholder*="title"]',
+                'textarea[placeholder*="标题"]',
+            ],
+        },
+        "douyin": {
+            "name": "抖音",
+            "url": "https://creator.douyin.com/creator-micro/content/upload",
+            "file_selectors": [
+                'input[type="file"]',
+                'input[type="file"][accept*="video"]',
+                'input[type="file"][accept*="mp4"]',
+                ".upload-input",
+                "#upload-input",
+                "[data-e2e='upload-input']",
+            ],
+            "title_selectors": [
+                'input[placeholder*="标题"]',
+                'input[placeholder*="title"]',
+                'textarea[placeholder*="标题"]',
+                "[data-e2e='title-input']",
+            ],
+        },
+    }
+
+    config = platform_config.get(platform, platform_config["xiaohongshu"])
+    logger.info(f"[VIDEO_UPLOAD] 目标平台: {config['name']}")
 
     project_root = Path(__file__).parent.parent.parent.parent
     upload_dir = project_root / "upload"
@@ -977,22 +1017,14 @@ def upload_video():
 
         browser = Browser(host=Config.CHROME_HOST, port=Config.CHROME_PORT)
 
-        creator_url = "https://creator.xiaohongshu.com/publish/publish?source=official&from=menu&target=video"
-        page = browser.new_page(creator_url)
+        page = browser.new_page(config["url"])
 
-        logger.info(f"[VIDEO_UPLOAD] 已打开创作者平台: {creator_url}")
+        logger.info(f"[VIDEO_UPLOAD] 已打开{config['name']}创作者平台: {config['url']}")
 
         time.sleep(3)
 
-        file_input_selectors = [
-            'input[type="file"]',
-            'input[type="file"][accept*="video"]',
-            ".upload-input",
-            "#upload-input",
-        ]
-
         file_input_found = False
-        for selector in file_input_selectors:
+        for selector in config["file_selectors"]:
             count = page.get_elements_count(selector)
             if count > 0:
                 logger.info(f"[VIDEO_UPLOAD] 找到文件上传input: {selector}")
@@ -1001,17 +1033,14 @@ def upload_video():
                 break
 
         if not file_input_found:
-            logger.warning("[VIDEO_UPLOAD] 未找到文件上传input，请在页面手动上传")
+            logger.warning(
+                f"[VIDEO_UPLOAD] 未找到{config['name']}文件上传input，请在页面手动上传"
+            )
 
         time.sleep(2)
 
         if title:
-            title_selectors = [
-                'input[placeholder*="标题"]',
-                'input[placeholder*="title"]',
-                'textarea[placeholder*="标题"]',
-            ]
-            for selector in title_selectors:
+            for selector in config["title_selectors"]:
                 if page.has_element(selector):
                     logger.info(f"[VIDEO_UPLOAD] 填写标题: {selector}")
                     page.input_text(selector, title)
@@ -1020,9 +1049,11 @@ def upload_video():
         return jsonify(
             ApiResponse(
                 success=True,
-                message="视频上传已开始，请在浏览器中确认上传状态并完成发布",
+                message=f"视频上传已开始，请在浏览器中确认上传状态并完成发布",
                 data={
-                    "url": creator_url,
+                    "url": config["url"],
+                    "platform": platform,
+                    "platform_name": config["name"],
                     "video_path": str(saved_path),
                     "video_name": original_name,
                     "title": title,

@@ -3,7 +3,7 @@
     <header class="bg-white shadow-sm">
       <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         <div class="flex items-center gap-4">
-          <h1 class="text-2xl font-bold text-xhs-red">小红书视频上传</h1>
+          <h1 class="text-2xl font-bold text-xhs-red">视频上传</h1>
           <router-link
             to="/"
             class="text-gray-600 hover:text-gray-800 text-sm"
@@ -34,7 +34,7 @@
             </svg>
           </div>
           <h2 class="text-xl font-bold text-gray-800 mb-2">第一步：启动 Chrome 并登录</h2>
-          <p class="text-gray-500 mb-6">点击下方按钮启动 Chrome，请手动登录小红书创作者平台</p>
+          <p class="text-gray-500 mb-6">点击下方按钮启动 Chrome，请手动登录创作者平台账号</p>
           <button
             @click="startChrome"
             :disabled="startingChrome"
@@ -47,12 +47,58 @@
       </div>
 
       <div v-else class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-6">视频上传到小红书创作者平台</h2>
+        <h2 class="text-xl font-bold text-gray-800 mb-6">视频上传到创作者平台</h2>
         
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            选择平台
+          </label>
+          <div class="grid grid-cols-2 gap-4">
+            <button
+              @click="platform = 'xiaohongshu'"
+              :class="[
+                'p-4 rounded-lg border-2 transition-all text-left',
+                platform === 'xiaohongshu' 
+                  ? 'border-xhs-red bg-red-50' 
+                  : 'border-gray-200 hover:border-gray-300'
+              ]"
+            >
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-xhs-red flex items-center justify-center">
+                  <span class="text-white font-bold text-lg">X</span>
+                </div>
+                <div>
+                  <p class="font-medium text-gray-800">小红书</p>
+                  <p class="text-xs text-gray-500">xiaohongshu.com</p>
+                </div>
+              </div>
+            </button>
+            <button
+              @click="platform = 'douyin'"
+              :class="[
+                'p-4 rounded-lg border-2 transition-all text-left',
+                platform === 'douyin' 
+                  ? 'border-pink-500 bg-pink-50' 
+                  : 'border-gray-200 hover:border-gray-300'
+              ]"
+            >
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+                  <span class="text-white font-bold text-lg">D</span>
+                </div>
+                <div>
+                  <p class="font-medium text-gray-800">抖音</p>
+                  <p class="text-xs text-gray-500">douyin.com</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p class="text-sm text-blue-700">
             <span class="font-semibold">提示：</span>
-            请确保您已在 Chrome 中登录小红书账号。系统将打开创作者平台发布页面，您可以手动选择视频文件并填写信息。
+            请确保您已在 Chrome 中登录{{ platform === 'xiaohongshu' ? '小红书' : '抖音' }}账号。系统将打开创作者平台发布页面并自动上传视频。
           </p>
         </div>
 
@@ -77,7 +123,7 @@
             </div>
             <div v-else class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <svg class="w-8 h-8 text-xhs-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -105,7 +151,7 @@
           <input
             v-model="title"
             type="text"
-            placeholder="输入视频标题"
+            :placeholder="platform === 'xiaohongshu' ? '输入视频标题' : '输入视频标题"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent"
           />
         </div>
@@ -117,7 +163,7 @@
           <textarea
             v-model="description"
             rows="3"
-            placeholder="输入视频描述"
+            :placeholder="platform === 'xiaohongshu' ? '输入视频描述' : '输入视频描述'"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent"
           ></textarea>
         </div>
@@ -125,9 +171,14 @@
         <button
           @click="handleUpload"
           :disabled="uploading || !selectedFile"
-          class="w-full bg-xhs-red text-white py-3 px-4 rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg"
+          :class="[
+            'w-full py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg text-white',
+            platform === 'xiaohongshu' 
+              ? 'bg-xhs-red hover:bg-red-600' 
+              : 'bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700'
+          ]"
         >
-          {{ uploading ? '打开中...' : '打开创作者平台' }}
+          {{ uploading ? '上传中...' : (platform === 'xiaohongshu' ? '上传到小红书' : '上传到抖音') }}
         </button>
 
         <p v-if="error" class="text-red-500 mt-4 text-center">{{ error }}</p>
@@ -147,15 +198,15 @@
           </li>
           <li class="flex items-start gap-2">
             <span class="text-xhs-red font-bold">2.</span>
-            <span>系统将打开小红书创作者平台发布页面</span>
+            <span>系统将打开{{ platform === 'xiaohongshu' ? '小红书' : '抖音' }}创作者平台发布页面</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-xhs-red font-bold">3.</span>
-            <span>请在浏览器中手动点击上传按钮选择视频文件</span>
+            <span>视频将自动上传并填写标题</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-xhs-red font-bold">4.</span>
-            <span>填写标题、描述等信息后发布笔记</span>
+            <span>请在浏览器中确认上传状态并完成发布</span>
           </li>
         </ul>
       </div>
@@ -175,6 +226,7 @@ const fileInput = ref(null)
 const selectedFile = ref(null)
 const title = ref('')
 const description = ref('')
+const platform = ref('xiaohongshu')
 const uploading = ref(false)
 const error = ref('')
 const success = ref('')
@@ -237,6 +289,7 @@ const handleUpload = async () => {
     formData.append('video', selectedFile.value)
     formData.append('title', title.value)
     formData.append('description', description.value)
+    formData.append('platform', platform.value)
 
     const res = await fetch('/api/upload-video', {
       method: 'POST',
@@ -245,10 +298,11 @@ const handleUpload = async () => {
     const json = await res.json()
     
     if (json.success) {
-      success.value = '已打开小红书创作者平台，请在浏览器中完成视频上传操作'
+      const platformName = platform.value === 'xiaohongshu' ? '小红书' : '抖音'
+      success.value = `已打开${platformName}创作者平台，视频上传进行中，请在浏览器中确认上传状态`
       selectedFile.value = null
     } else {
-      error.value = json.error || '打开创作者平台失败'
+      error.value = json.error || '上传失败'
     }
   } catch (e) {
     error.value = e.message || '网络错误'
