@@ -389,10 +389,73 @@ class Page:
             "Input.dispatchKeyEvent",
             {"type": "keyDown", **info},
         )
+        time.sleep(random.uniform(0.05, 0.1))
         self._send_session(
             "Input.dispatchKeyEvent",
             {"type": "keyUp", **info},
         )
+
+    def human_hover(self, selector: str) -> None:
+        """模拟人类悬停到元素上（先移动到元素位置）"""
+        box = self.evaluate(
+            f"""
+            (() => {{
+                const el = document.querySelector({json.dumps(selector)});
+                if (!el) return null;
+                el.scrollIntoView({{block: 'center'}});
+                const rect = el.getBoundingClientRect();
+                return {{x: rect.left + rect.width / 2, y: rect.top + rect.height / 2}};
+            }})()
+            """
+        )
+        if not box:
+            return
+        steps = 5
+        for i in range(steps):
+            target_x = box["x"] + random.uniform(-3, 3)
+            target_y = box["y"] + random.uniform(-3, 3)
+            start_x = box["x"] - 100 + random.uniform(-20, 20)
+            start_y = box["y"] - 100 + random.uniform(-20, 20)
+            x = start_x + (target_x - start_x) * (i / steps)
+            y = start_y + (target_y - start_y) * (i / steps)
+            self.mouse_move(x, y)
+            time.sleep(random.uniform(0.02, 0.05))
+        time.sleep(random.uniform(0.2, 0.5))
+
+    def human_click(self, selector: str) -> None:
+        """模拟人类点击元素（悬停 + 延迟 + 点击）"""
+        self.human_hover(selector)
+        time.sleep(random.uniform(0.1, 0.3))
+        box = self.evaluate(
+            f"""
+            (() => {{
+                const el = document.querySelector({json.dumps(selector)});
+                if (!el) return null;
+                const rect = el.getBoundingClientRect();
+                return {{x: rect.left + rect.width / 2, y: rect.top + rect.height / 2}};
+            }})()
+            """
+        )
+        if box:
+            x = box["x"] + random.uniform(-2, 2)
+            y = box["y"] + random.uniform(-2, 2)
+            self.mouse_click(x, y)
+
+    def human_random_scroll(self, times: int = None) -> None:
+        """模拟人类随机滚动页面"""
+        if times is None:
+            times = random.randint(1, 3)
+        for _ in range(times):
+            self.evaluate(
+                f"""
+                window.scrollBy(0, {random.randint(-300, 500)})
+                """
+            )
+            time.sleep(random.uniform(0.3, 0.8))
+
+    def human_wait_page_load(self) -> None:
+        """模拟人类等待页面加载（随机延迟）"""
+        time.sleep(random.uniform(1.5, 3.0))
 
     def inject_stealth(self) -> None:
         """注入反检测脚本。"""
@@ -425,20 +488,48 @@ class Page:
         logger.info(f"已设置文件: {file_path}")
 
     def input_text(self, selector: str, text: str) -> None:
-        """向input/textarea元素输入文本"""
-        self.evaluate(
+        """向input/textarea/contenteditable元素输入文本"""
+        escaped_text = text.replace("'", "\\'").replace("\n", "\\n")
+
+        is_contenteditable = self.evaluate(
             f"""
             (() => {{
                 const el = document.querySelector({json.dumps(selector)});
-                if (el) {{
-                    el.focus();
-                    el.value = '';
-                    el.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                }}
+                return el ? el.getAttribute('contenteditable') === 'true' : false;
             }})()
             """
         )
-        time.sleep(0.1)
+
+        self.human_click(selector)
+        time.sleep(random.uniform(0.3, 0.5))
+
+        if is_contenteditable:
+            self.evaluate(
+                f"""
+                (() => {{
+                    const el = document.querySelector({json.dumps(selector)});
+                    if (el) {{
+                        el.textContent = '';
+                        el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    }}
+                }})()
+                """
+            )
+        else:
+            self.evaluate(
+                f"""
+                (() => {{
+                    const el = document.querySelector({json.dumps(selector)});
+                    if (el) {{
+                        el.value = '';
+                        el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    }}
+                }})()
+                """
+            )
+
+        time.sleep(random.uniform(0.2, 0.3))
+
         for char in text:
             if char == "\n":
                 self.press_key("Enter")
@@ -451,7 +542,23 @@ class Page:
                     "Input.dispatchKeyEvent",
                     {"type": "keyUp", "text": char},
                 )
-            time.sleep(random.uniform(0.02, 0.05))
+            time.sleep(random.uniform(0.03, 0.08))
+
+        time.sleep(random.uniform(0.2, 0.3))
+
+        self.evaluate(
+            f"""
+            (() => {{
+                const el = document.querySelector({json.dumps(selector)});
+                if (el) {{
+                    el.blur();
+                    el.dispatchEvent(new Event('blur', {{ bubbles: true }}));
+                    el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                }}
+            }})()
+            """
+        )
+        logger.info(f"已输入文本到 {selector}: {text[:20]}...")
 
     def wait_for_condition(
         self, condition: str, timeout: float = 60.0, interval: float = 1.0

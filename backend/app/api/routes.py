@@ -3,6 +3,7 @@
 import csv
 import io
 import logging
+import random
 import sys
 import os
 import time
@@ -976,6 +977,96 @@ def upload_video():
                 "[data-e2e='title-input']",
             ],
         },
+        "kuaishou": {
+            "name": "快手",
+            "url": "https://cp.kuaishou.com/article/publish/video?tabType=1",
+            "file_selectors": [
+                'input[type="file"]',
+                'input[type="file"][accept*="video"]',
+                'input[type="file"][accept*="mp4"]',
+                ".upload-input",
+                "#upload-input",
+                "[class*='upload']",
+                "[class*='file-input']",
+            ],
+            "title_selectors": [],
+            "description_selectors": [
+                'textarea[placeholder*="作品描述"]',
+                'textarea[placeholder*="智能文案"]',
+                'textarea[placeholder*="描述"]',
+                'textarea[placeholder*="简介"]',
+                'textarea[placeholder*="说"]',
+                'textarea[placeholder*="内容"]',
+                'textarea[placeholder*="补充"]',
+                'textarea[aria-label*="描述"]',
+                'textarea[aria-label*="简介"]',
+                'textarea[aria-placeholder*="描述"]',
+                'textarea[aria-placeholder*="简介"]',
+                'textarea[class*="desc"]',
+                'textarea[class*="content"]',
+                'textarea[class*="intro"]',
+                'textarea[class*="textarea"]',
+                'textarea[id*="desc"]',
+                'textarea[id*="content"]',
+                "textarea",
+                'div[contenteditable="true"][placeholder*="描述"]',
+                'div[contenteditable="true"][placeholder*="简介"]',
+                'div[contenteditable="true"][placeholder*="作品"]',
+                'div[contenteditable="true"][aria-placeholder*="描述"]',
+                'div[contenteditable="true"][aria-placeholder*="简介"]',
+                '[contenteditable="true"][data-placeholder*="描述"]',
+                '[contenteditable="true"][data-placeholder*="简介"]',
+                'input[placeholder*="作品描述"]',
+                'input[placeholder*="描述"]',
+                'input[placeholder*="简介"]',
+                'input[aria-placeholder*="描述"]',
+                'input[aria-placeholder*="简介"]',
+                ".desc-textarea",
+                ".content-textarea",
+                ".description-input",
+            ],
+            "title_to_description": True,
+        },
+        "baijiahao": {
+            "name": "百家号",
+            "url": "https://baijiahao.baidu.com/builder/rc/edit?type=videoV2&is_from_cms=1",
+            "file_selectors": [
+                'input[type="file"]',
+                'input[type="file"][accept*="video"]',
+                'input[type="file"][accept*="mp4"]',
+                ".upload-input",
+                "#upload-input",
+                "[class*='upload']",
+                "[class*='file-input']",
+                "[data-upload]",
+            ],
+            "title_selectors": [
+                '[data-placeholder*="添加标题"]',
+                '[aria-placeholder*="添加标题"]',
+                'input[aria-placeholder*="添加标题"]',
+                'input[placeholder*="添加标题"]',
+                'input[aria-placeholder*="标题"]',
+                'input[placeholder*="标题"]',
+                'input[placeholder*="title"]',
+                'input[placeholder*="name"]',
+                'input[placeholder*="名称"]',
+                'textarea[placeholder*="标题"]',
+                'input[class*="title"]',
+                'input[class*="name"]',
+                'input[class*="title-input"]',
+                'input[id*="title"]',
+                'input[id*="name"]',
+                '[data-placeholder*="标题"]',
+                '[aria-placeholder*="标题"]',
+                '[class*="video-title"]',
+                '[class*="article-title"]',
+                ".title-input input",
+                "input.new-title",
+                "input.article-title",
+                ".title-input",
+                '[contenteditable="true"]',
+            ],
+        },
     }
 
     config = platform_config.get(platform, platform_config["xiaohongshu"])
@@ -1021,13 +1112,16 @@ def upload_video():
 
         logger.info(f"[VIDEO_UPLOAD] 已打开{config['name']}创作者平台: {config['url']}")
 
-        time.sleep(3)
+        page.human_wait_page_load()
+        page.human_random_scroll(1)
 
         file_input_found = False
         for selector in config["file_selectors"]:
             count = page.get_elements_count(selector)
             if count > 0:
                 logger.info(f"[VIDEO_UPLOAD] 找到文件上传input: {selector}")
+                page.human_hover(selector)
+                time.sleep(random.uniform(0.3, 0.6))
                 page.set_file_input_files(selector, str(saved_path))
                 file_input_found = True
                 break
@@ -1037,14 +1131,36 @@ def upload_video():
                 f"[VIDEO_UPLOAD] 未找到{config['name']}文件上传input，请在页面手动上传"
             )
 
-        time.sleep(2)
+        time.sleep(random.uniform(5, 8))
+
+        title_to_desc = config.get("title_to_description", False)
 
         if title:
-            for selector in config["title_selectors"]:
-                if page.has_element(selector):
-                    logger.info(f"[VIDEO_UPLOAD] 填写标题: {selector}")
-                    page.input_text(selector, title)
+            target_selectors = (
+                config.get("description_selectors")
+                if title_to_desc
+                else config.get("title_selectors", [])
+            )
+            input_found = False
+
+            for _ in range(3):
+                for selector in target_selectors:
+                    if page.has_element(selector):
+                        logger.info(
+                            f"[VIDEO_UPLOAD] 填写{'描述' if title_to_desc else '标题'}: {selector}"
+                        )
+                        page.input_text(selector, title)
+                        input_found = True
+                        break
+                if input_found:
                     break
+                time.sleep(2)
+                page.human_random_scroll(1)
+
+            if not input_found:
+                logger.warning(
+                    f"[VIDEO_UPLOAD] 未找到{config['name']}{'描述' if title_to_desc else '标题'}输入框"
+                )
 
         return jsonify(
             ApiResponse(

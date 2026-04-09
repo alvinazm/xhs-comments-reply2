@@ -51,54 +51,113 @@
         
         <div class="mb-6">
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            选择平台
+            选择平台（可多选）
           </label>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-4 gap-3">
             <button
-              @click="platform = 'xiaohongshu'"
+              @click="togglePlatform('xiaohongshu')"
               :class="[
-                'p-4 rounded-lg border-2 transition-all text-left',
-                platform === 'xiaohongshu' 
+                'p-3 rounded-lg border-2 transition-all text-left relative',
+                selectedPlatforms.includes('xiaohongshu') 
                   ? 'border-xhs-red bg-red-50' 
                   : 'border-gray-200 hover:border-gray-300'
               ]"
             >
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-xhs-red flex items-center justify-center">
-                  <span class="text-white font-bold text-lg">X</span>
+              <div v-if="selectedPlatforms.includes('xiaohongshu')" class="absolute top-1 right-1 w-5 h-5 bg-xhs-red rounded-full flex items-center justify-center">
+                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-xhs-red flex items-center justify-center">
+                  <span class="text-white font-bold text-sm">X</span>
                 </div>
                 <div>
-                  <p class="font-medium text-gray-800">小红书</p>
-                  <p class="text-xs text-gray-500">xiaohongshu.com</p>
+                  <p class="font-medium text-gray-800 text-sm">小红书</p>
+                  <p class="text-xs text-gray-400">xiaohongshu</p>
                 </div>
               </div>
             </button>
             <button
-              @click="platform = 'douyin'"
+              @click="togglePlatform('douyin')"
               :class="[
-                'p-4 rounded-lg border-2 transition-all text-left',
-                platform === 'douyin' 
+                'p-3 rounded-lg border-2 transition-all text-left relative',
+                selectedPlatforms.includes('douyin') 
                   ? 'border-pink-500 bg-pink-50' 
                   : 'border-gray-200 hover:border-gray-300'
               ]"
             >
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
-                  <span class="text-white font-bold text-lg">D</span>
+              <div v-if="selectedPlatforms.includes('douyin')" class="absolute top-1 right-1 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+                  <span class="text-white font-bold text-sm">D</span>
                 </div>
                 <div>
-                  <p class="font-medium text-gray-800">抖音</p>
-                  <p class="text-xs text-gray-500">douyin.com</p>
+                  <p class="font-medium text-gray-800 text-sm">抖音</p>
+                  <p class="text-xs text-gray-400">douyin</p>
+                </div>
+              </div>
+            </button>
+            <button
+              @click="togglePlatform('kuaishou')"
+              :class="[
+                'p-3 rounded-lg border-2 transition-all text-left relative',
+                selectedPlatforms.includes('kuaishou') 
+                  ? 'border-green-500 bg-green-50' 
+                  : 'border-gray-200 hover:border-gray-300'
+              ]"
+            >
+              <div v-if="selectedPlatforms.includes('kuaishou')" class="absolute top-1 right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center">
+                  <span class="text-white font-bold text-sm">K</span>
+                </div>
+                <div>
+                  <p class="font-medium text-gray-800 text-sm">快手</p>
+                  <p class="text-xs text-gray-400">kuaishou</p>
+                </div>
+              </div>
+            </button>
+            <button
+              @click="togglePlatform('baijiahao')"
+              :class="[
+                'p-3 rounded-lg border-2 transition-all text-left relative',
+                selectedPlatforms.includes('baijiahao') 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-200 hover:border-gray-300'
+              ]"
+            >
+              <div v-if="selectedPlatforms.includes('baijiahao')" class="absolute top-1 right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                  <span class="text-white font-bold text-sm">B</span>
+                </div>
+                <div>
+                  <p class="font-medium text-gray-800 text-sm">百家号</p>
+                  <p class="text-xs text-gray-400">baijiahao</p>
                 </div>
               </div>
             </button>
           </div>
+          <p class="text-xs text-gray-500 mt-2">已选择 {{ selectedPlatforms.length }} 个平台</p>
         </div>
 
         <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p class="text-sm text-blue-700">
             <span class="font-semibold">提示：</span>
-            请确保您已在 Chrome 中登录{{ platform === 'xiaohongshu' ? '小红书' : '抖音' }}账号。系统将打开创作者平台发布页面并自动上传视频。
+            请确保您已在 Chrome 中登录小红书和抖音账号。系统将依次打开创作者平台发布页面并自动上传视频。
           </p>
         </div>
 
@@ -114,7 +173,7 @@
               class="hidden"
               ref="fileInput"
             />
-            <div v-if="!selectedFile" class="cursor-pointer" @click="$refs.fileInput.click()">
+            <div v-if="!selectedFile" class="cursor-pointer" @click="triggerFileInput">
               <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
@@ -151,7 +210,7 @@
           <input
             v-model="title"
             type="text"
-            :placeholder="platform === 'xiaohongshu' ? '输入视频标题' : '输入视频标题"
+            :placeholder="'输入视频标题'"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent"
           />
         </div>
@@ -163,22 +222,20 @@
           <textarea
             v-model="description"
             rows="3"
-            :placeholder="platform === 'xiaohongshu' ? '输入视频描述' : '输入视频描述'"
+            placeholder="输入视频描述"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent"
           ></textarea>
         </div>
 
         <button
           @click="handleUpload"
-          :disabled="uploading || !selectedFile"
+          :disabled="uploading || !selectedFile || selectedPlatforms.length === 0"
           :class="[
             'w-full py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg text-white',
-            platform === 'xiaohongshu' 
-              ? 'bg-xhs-red hover:bg-red-600' 
-              : 'bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700'
+            'bg-gradient-to-r from-xhs-red to-pink-500 hover:from-red-600 hover:to-pink-600'
           ]"
         >
-          {{ uploading ? '上传中...' : (platform === 'xiaohongshu' ? '上传到小红书' : '上传到抖音') }}
+          {{ uploading ? '上传中...' : '开始上传' }}
         </button>
 
         <p v-if="error" class="text-red-500 mt-4 text-center">{{ error }}</p>
@@ -198,7 +255,7 @@
           </li>
           <li class="flex items-start gap-2">
             <span class="text-xhs-red font-bold">2.</span>
-            <span>系统将打开{{ platform === 'xiaohongshu' ? '小红书' : '抖音' }}创作者平台发布页面</span>
+            <span>系统将依次打开已选平台的创作者平台发布页面</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="text-xhs-red font-bold">3.</span>
@@ -226,8 +283,9 @@ const fileInput = ref(null)
 const selectedFile = ref(null)
 const title = ref('')
 const description = ref('')
-const platform = ref('xiaohongshu')
+const selectedPlatforms = ref(['xiaohongshu'])
 const uploading = ref(false)
+const uploadingPlatforms = ref([])
 const error = ref('')
 const success = ref('')
 
@@ -260,11 +318,24 @@ const checkChromeStatus = async () => {
   }
 }
 
+const togglePlatform = (p) => {
+  const idx = selectedPlatforms.value.indexOf(p)
+  if (idx === -1) {
+    selectedPlatforms.value.push(p)
+  } else {
+    selectedPlatforms.value.splice(idx, 1)
+  }
+}
+
 const handleFileSelect = (event) => {
   const file = event.target.files?.[0]
   if (file) {
     selectedFile.value = file
   }
+}
+
+const triggerFileInput = () => {
+  fileInput.value?.click()
 }
 
 const formatFileSize = (bytes) => {
@@ -280,35 +351,52 @@ const handleUpload = async () => {
     return
   }
 
+  if (selectedPlatforms.value.length === 0) {
+    error.value = '请选择至少一个平台'
+    return
+  }
+
   uploading.value = true
   error.value = ''
   success.value = ''
-
-  try {
-    const formData = new FormData()
-    formData.append('video', selectedFile.value)
-    formData.append('title', title.value)
-    formData.append('description', description.value)
-    formData.append('platform', platform.value)
-
-    const res = await fetch('/api/upload-video', {
-      method: 'POST',
-      body: formData,
-    })
-    const json = await res.json()
+  
+  const results = []
+  
+  for (const p of selectedPlatforms.value) {
+    uploadingPlatforms.value = [p === 'xiaohongshu' ? '小红书' : '抖音']
     
-    if (json.success) {
-      const platformName = platform.value === 'xiaohongshu' ? '小红书' : '抖音'
-      success.value = `已打开${platformName}创作者平台，视频上传进行中，请在浏览器中确认上传状态`
-      selectedFile.value = null
-    } else {
-      error.value = json.error || '上传失败'
+    try {
+      const formData = new FormData()
+      formData.append('video', selectedFile.value)
+      formData.append('title', title.value)
+      formData.append('description', description.value)
+      formData.append('platform', p)
+
+      const res = await fetch('/api/upload-video', {
+        method: 'POST',
+        body: formData,
+      })
+      const json = await res.json()
+      
+      if (json.success) {
+        const platformName = p === 'xiaohongshu' ? '小红书' : '抖音'
+        results.push(platformName)
+      } else {
+        error.value = `${p === 'xiaohongshu' ? '小红书' : '抖音'}: ${json.error || '上传失败'}`
+      }
+    } catch (e) {
+      error.value = `${p === 'xiaohongshu' ? '小红书' : '抖音'}: ${e.message || '网络错误'}`
     }
-  } catch (e) {
-    error.value = e.message || '网络错误'
-  } finally {
-    uploading.value = false
   }
+  
+  uploadingPlatforms.value = []
+  
+  if (results.length > 0) {
+    success.value = `已在 ${results.join(', ')} 打开创作者平台，视频上传进行中，请在浏览器中确认上传状态`
+    selectedFile.value = null
+  }
+  
+  uploading.value = false
 }
 
 onMounted(() => {
