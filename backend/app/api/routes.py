@@ -927,6 +927,118 @@ def get_config():
     )
 
 
+@comment_bp.route("/upload-video", methods=["POST"])
+def upload_video():
+    """自动上传视频到创作者平台"""
+    import uuid
+
+    video_file = request.files.get("video")
+    title = request.form.get("title", "").strip()
+    description = request.form.get("description", "").strip()
+
+    if not video_file:
+        return jsonify(
+            ApiResponse(success=False, error="请选择视频文件").to_dict()
+        ), 400
+
+    project_root = Path(__file__).parent.parent.parent.parent
+    upload_dir = project_root / "upload"
+    upload_dir.mkdir(exist_ok=True)
+
+    file_id = str(uuid.uuid4())[:8]
+    original_name = video_file.filename or "video.mp4"
+    saved_path = upload_dir / f"video_{file_id}_{original_name}"
+
+    video_file.save(str(saved_path))
+    logger.info(f"[VIDEO_UPLOAD] 视频已保存: {saved_path}")
+
+    try:
+        try:
+            resp = requests.get(
+                f"http://{Config.CHROME_HOST}:{Config.CHROME_PORT}/json/version",
+                timeout=2,
+            )
+            if resp.status_code != 200:
+                if not ensure_chrome(
+                    host=Config.CHROME_HOST, port=Config.CHROME_PORT, headless=False
+                ):
+                    return jsonify(
+                        ApiResponse(success=False, error="Chrome 启动失败").to_dict()
+                    ), 500
+        except requests.exceptions.RequestException:
+            if not ensure_chrome(
+                host=Config.CHROME_HOST, port=Config.CHROME_PORT, headless=False
+            ):
+                return jsonify(
+                    ApiResponse(success=False, error="Chrome 启动失败").to_dict()
+                ), 500
+
+        from ..services.xhs.cdp import Browser
+
+        browser = Browser(host=Config.CHROME_HOST, port=Config.CHROME_PORT)
+
+        creator_url = "https://creator.xiaohongshu.com/publish/publish?source=official&from=menu&target=video"
+        page = browser.new_page(creator_url)
+
+        logger.info(f"[VIDEO_UPLOAD] 已打开创作者平台: {creator_url}")
+
+        time.sleep(3)
+
+        file_input_selectors = [
+            'input[type="file"]',
+            'input[type="file"][accept*="video"]',
+            ".upload-input",
+            "#upload-input",
+        ]
+
+        file_input_found = False
+        for selector in file_input_selectors:
+            count = page.get_elements_count(selector)
+            if count > 0:
+                logger.info(f"[VIDEO_UPLOAD] 找到文件上传input: {selector}")
+                page.set_file_input_files(selector, str(saved_path))
+                file_input_found = True
+                break
+
+        if not file_input_found:
+            logger.warning("[VIDEO_UPLOAD] 未找到文件上传input，请在页面手动上传")
+
+        time.sleep(2)
+
+        if title:
+            title_selectors = [
+                'input[placeholder*="标题"]',
+                'input[placeholder*="title"]',
+                'textarea[placeholder*="标题"]',
+            ]
+            for selector in title_selectors:
+                if page.has_element(selector):
+                    logger.info(f"[VIDEO_UPLOAD] 填写标题: {selector}")
+                    page.input_text(selector, title)
+                    break
+
+        return jsonify(
+            ApiResponse(
+                success=True,
+                message="视频上传已开始，请在浏览器中确认上传状态并完成发布",
+                data={
+                    "url": creator_url,
+                    "video_path": str(saved_path),
+                    "video_name": original_name,
+                    "title": title,
+                    "description": description,
+                    "auto_uploaded": file_input_found,
+                },
+            ).to_dict()
+        )
+
+    except Exception as e:
+        logger.error("视频上传失败: %s", e)
+        return jsonify(
+            ApiResponse(success=False, error=f"操作失败: {e!s}").to_dict()
+        ), 500
+
+
 @comment_bp.route("/config", methods=["POST"])
 def save_config():
     """保存配置"""

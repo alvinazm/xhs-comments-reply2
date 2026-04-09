@@ -101,6 +101,14 @@ export const xhsApi = {
   savePromptConfig(assembledPrompt) {
     return apiClient.post('/config/prompt', { prompt_text: assembledPrompt })
   },
+
+  uploadVideo(videoPath, title = '', description = '') {
+    return apiClient.post('/upload-video', {
+      video_path: videoPath,
+      title,
+      description,
+    })
+  },
 }
 
 export default xhsApi

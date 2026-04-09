@@ -401,6 +401,73 @@ class Page:
             {"source": STEALTH_JS},
         )
 
+    def set_file_input_files(self, selector: str, file_path: str) -> None:
+        """通过CDP设置文件上传input的值(绕过文件对话框)"""
+        result = self._send_session(
+            "Runtime.evaluate",
+            {
+                "expression": f"document.querySelector({json.dumps(selector)})",
+                "returnByValue": False,
+            },
+        )
+        remote_obj = result.get("result", {})
+        object_id = remote_obj.get("objectId")
+        if not object_id:
+            raise ElementNotFoundError(f"文件上传input: {selector}")
+
+        self._send_session(
+            "DOM.setFileInputFiles",
+            {
+                "objectId": object_id,
+                "files": [file_path],
+            },
+        )
+        logger.info(f"已设置文件: {file_path}")
+
+    def input_text(self, selector: str, text: str) -> None:
+        """向input/textarea元素输入文本"""
+        self.evaluate(
+            f"""
+            (() => {{
+                const el = document.querySelector({json.dumps(selector)});
+                if (el) {{
+                    el.focus();
+                    el.value = '';
+                    el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                }}
+            }})()
+            """
+        )
+        time.sleep(0.1)
+        for char in text:
+            if char == "\n":
+                self.press_key("Enter")
+            else:
+                self._send_session(
+                    "Input.dispatchKeyEvent",
+                    {"type": "keyDown", "text": char},
+                )
+                self._send_session(
+                    "Input.dispatchKeyEvent",
+                    {"type": "keyUp", "text": char},
+                )
+            time.sleep(random.uniform(0.02, 0.05))
+
+    def wait_for_condition(
+        self, condition: str, timeout: float = 60.0, interval: float = 1.0
+    ) -> bool:
+        """等待JavaScript条件为true"""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            try:
+                result = self.evaluate(condition)
+                if result:
+                    return True
+            except CDPError:
+                pass
+            time.sleep(interval)
+        return False
+
 
 class Browser:
     """Chrome 浏览器 CDP 控制器。"""

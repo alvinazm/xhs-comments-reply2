@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 
 EXPLORE_URL = "https://www.xiaohongshu.com/explore"
 HOME_URL = "https://www.xiaohongshu.com"
-PUBLISH_URL = "https://creator.xiaohongshu.com/publish/publish?source=official"
+PUBLISH_URL = "https://creator.xiaohongshu.com/publish/publish?source=official&from=menu&target=video"
 
 
 def make_feed_detail_url(feed_id: str, xsec_token: str) -> str:
