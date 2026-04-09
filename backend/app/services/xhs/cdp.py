@@ -504,17 +504,48 @@ class Page:
         time.sleep(random.uniform(0.3, 0.5))
 
         if is_contenteditable:
-            self.evaluate(
-                f"""
-                (() => {{
-                    const el = document.querySelector({json.dumps(selector)});
-                    if (el) {{
-                        el.textContent = '';
-                        el.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                    }}
-                }})()
-                """
+            # 重新点击元素确保焦点
+            self.human_click(selector)
+            time.sleep(random.uniform(0.3, 0.5))
+
+            # Ctrl+A 全选
+            self._send_session(
+                "Input.dispatchKeyEvent",
+                {
+                    "type": "keyDown",
+                    "modifiers": 2,
+                    "key": "Control",
+                    "code": "ControlLeft",
+                },
             )
+            time.sleep(random.uniform(0.05, 0.1))
+            self._send_session(
+                "Input.dispatchKeyEvent",
+                {"type": "keyDown", "modifiers": 2, "key": "a", "code": "KeyA"},
+            )
+            time.sleep(random.uniform(0.05, 0.1))
+            self._send_session(
+                "Input.dispatchKeyEvent",
+                {"type": "keyUp", "modifiers": 2, "key": "a", "code": "KeyA"},
+            )
+            time.sleep(random.uniform(0.05, 0.1))
+            self._send_session(
+                "Input.dispatchKeyEvent",
+                {
+                    "type": "keyUp",
+                    "modifiers": 0,
+                    "key": "Control",
+                    "code": "ControlLeft",
+                },
+            )
+
+            # Backspace 删除 - Lexical 需要每次删除间有延迟
+            for _ in range(30):
+                self._send_session(
+                    "Input.dispatchKeyEvent",
+                    {"type": "keyDown", "key": "Backspace", "code": "Backspace"},
+                )
+                time.sleep(random.uniform(0.03, 0.05))
         else:
             self.evaluate(
                 f"""
