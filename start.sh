@@ -42,7 +42,7 @@ start_backend() {
     
     if ! pip show flask > /dev/null 2>&1; then
         echo -e "${YELLOW}安装后端依赖...${NC}"
-        pip install -r "$PROJECT_DIR/requirements.txt"
+        pip install -r "$PROJECT_DIR/backend/requirements.txt"
     fi
     
     mkdir -p "$PROJECT_DIR/logs"
