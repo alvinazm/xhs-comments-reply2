@@ -1140,26 +1140,36 @@ def upload_video():
         page.human_random_scroll(1)
 
         file_input_found = False
-        for selector in config["file_selectors"]:
-            count = page.get_elements_count(selector)
-            if count > 0:
-                video_upload_logger.info(f"[VIDEO_UPLOAD] 找到上传区域: {selector}")
-                page.human_hover(selector)
-                time.sleep(random.uniform(0.3, 0.6))
+        for retry in range(3):
+            if file_input_found:
+                break
+            for selector in config["file_selectors"]:
+                count = page.get_elements_count(selector)
+                if count > 0:
+                    video_upload_logger.info(f"[VIDEO_UPLOAD] 找到上传区域: {selector}")
+                    page.human_hover(selector)
+                    time.sleep(random.uniform(0.3, 0.6))
 
-                is_input = selector.startswith("input")
-                if is_input:
-                    page.set_file_input_files(selector, str(saved_path))
-                    file_input_found = True
-                    break
-                else:
-                    page.click_element(selector)
-                    time.sleep(random.uniform(1, 2))
-                    hidden_input = page.query_selector("input[type='file']")
-                    if hidden_input:
-                        page.set_file_input_files("input[type='file']", str(saved_path))
+                    is_input = selector.startswith("input")
+                    if is_input:
+                        page.set_file_input_files(selector, str(saved_path))
                         file_input_found = True
                         break
+                    else:
+                        page.click_element(selector)
+                        time.sleep(random.uniform(1, 2))
+                        hidden_input = page.query_selector("input[type='file']")
+                        if hidden_input:
+                            page.set_file_input_files(
+                                "input[type='file']", str(saved_path)
+                            )
+                            file_input_found = True
+                            break
+            if not file_input_found and retry < 2:
+                video_upload_logger.info(
+                    f"[VIDEO_UPLOAD] 文件上传未找到，重试第{retry + 2}次"
+                )
+                time.sleep(2)
 
         if not file_input_found:
             video_upload_logger.warning(

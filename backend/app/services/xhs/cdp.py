@@ -470,7 +470,7 @@ class Page:
 
     def human_wait_page_load(self) -> None:
         """模拟人类等待页面加载（随机延迟）"""
-        time.sleep(random.uniform(1.5, 3.0))
+        time.sleep(random.uniform(5.0, 8.0))
 
     def inject_stealth(self) -> None:
         """注入反检测脚本。"""
