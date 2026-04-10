@@ -8,6 +8,7 @@ import sys
 import os
 import time
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 import requests
@@ -32,16 +33,17 @@ from ..services.csv_storage import get_csv_path, csv_exists
 
 logger = logging.getLogger("api")
 
+video_upload_logger = logging.getLogger("video-upload")
+
 get_comments_logger = logging.getLogger("get_comments")
 
 os.makedirs(os.path.join(_logs_root, "logs"), exist_ok=True)
 
-get_comments_handler = logging.FileHandler(
-    os.path.join(
-        _logs_root,
-        "logs",
-        f"get_comments_{time.strftime('%Y-%m-%d')}.log",
-    ),
+get_comments_handler = TimedRotatingFileHandler(
+    os.path.join(_logs_root, "logs", "get_comments.log"),
+    when="midnight",
+    interval=1,
+    backupCount=7,
     encoding="utf-8",
 )
 get_comments_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
@@ -50,12 +52,11 @@ get_comments_logger.setLevel(logging.INFO)
 
 reply_logger = logging.getLogger("reply")
 
-reply_handler = logging.FileHandler(
-    os.path.join(
-        _logs_root,
-        "logs",
-        f"reply_{time.strftime('%Y-%m-%d')}.log",
-    ),
+reply_handler = TimedRotatingFileHandler(
+    os.path.join(_logs_root, "logs", "reply.log"),
+    when="midnight",
+    interval=1,
+    backupCount=7,
     encoding="utf-8",
 )
 reply_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
@@ -72,10 +73,6 @@ def start_chrome():
         if ensure_chrome(
             host=Config.CHROME_HOST, port=Config.CHROME_PORT, headless=False
         ):
-            from ..services.xhs.cdp import Browser
-
-            browser = Browser(host=Config.CHROME_HOST, port=Config.CHROME_PORT)
-            page = browser.new_page("https://www.xiaohongshu.com/")
             return jsonify(
                 ApiResponse(success=True, message="Chrome 启动成功").to_dict()
             )
@@ -1067,10 +1064,28 @@ def upload_video():
                 '[contenteditable="true"]',
             ],
         },
+        "bilibili": {
+            "name": "B站",
+            "url": "https://member.bilibili.com/platform/upload/video/frame",
+            "file_selectors": [
+                'input[type="file"][accept*="video"]',
+                'input[type="file"]',
+                ".upload-area",
+                "div.upload-area",
+                '[class*="upload-area"]',
+                '[class*="upload"]',
+            ],
+            "title_selectors": [
+                'input[placeholder*="稿件标题"]',
+                'input.input-val[placeholder*="标题"]',
+                "input.input-val",
+                'input[placeholder*="标题"]',
+            ],
+        },
     }
 
     config = platform_config.get(platform, platform_config["xiaohongshu"])
-    logger.info(f"[VIDEO_UPLOAD] 目标平台: {config['name']}")
+    video_upload_logger.info(f"[VIDEO_UPLOAD] 目标平台: {config['name']}")
 
     project_root = Path(__file__).parent.parent.parent.parent
     upload_dir = project_root / "upload"
@@ -1081,7 +1096,7 @@ def upload_video():
     saved_path = upload_dir / f"video_{file_id}_{original_name}"
 
     video_file.save(str(saved_path))
-    logger.info(f"[VIDEO_UPLOAD] 视频已保存: {saved_path}")
+    video_upload_logger.info(f"[VIDEO_UPLOAD] 视频已保存: {saved_path}")
 
     try:
         try:
@@ -1110,24 +1125,44 @@ def upload_video():
 
         page = browser.new_page(config["url"])
 
-        logger.info(f"[VIDEO_UPLOAD] 已打开{config['name']}创作者平台: {config['url']}")
+        video_upload_logger.info(
+            f"[VIDEO_UPLOAD] 已打开{config['name']}创作者平台: {config['url']}"
+        )
 
         page.human_wait_page_load()
+
+        if config.get("iframe_index") is not None:
+            page.set_iframe_context(config["iframe_index"])
+            video_upload_logger.info(
+                f"[VIDEO_UPLOAD] 已切换到 iframe[{config['iframe_index']}] 上下文"
+            )
+
         page.human_random_scroll(1)
 
         file_input_found = False
         for selector in config["file_selectors"]:
             count = page.get_elements_count(selector)
             if count > 0:
-                logger.info(f"[VIDEO_UPLOAD] 找到文件上传input: {selector}")
+                video_upload_logger.info(f"[VIDEO_UPLOAD] 找到上传区域: {selector}")
                 page.human_hover(selector)
                 time.sleep(random.uniform(0.3, 0.6))
-                page.set_file_input_files(selector, str(saved_path))
-                file_input_found = True
-                break
+
+                is_input = selector.startswith("input")
+                if is_input:
+                    page.set_file_input_files(selector, str(saved_path))
+                    file_input_found = True
+                    break
+                else:
+                    page.click_element(selector)
+                    time.sleep(random.uniform(1, 2))
+                    hidden_input = page.query_selector("input[type='file']")
+                    if hidden_input:
+                        page.set_file_input_files("input[type='file']", str(saved_path))
+                        file_input_found = True
+                        break
 
         if not file_input_found:
-            logger.warning(
+            video_upload_logger.warning(
                 f"[VIDEO_UPLOAD] 未找到{config['name']}文件上传input，请在页面手动上传"
             )
 
@@ -1146,7 +1181,7 @@ def upload_video():
             for _ in range(3):
                 for selector in target_selectors:
                     if page.has_element(selector):
-                        logger.info(
+                        video_upload_logger.info(
                             f"[VIDEO_UPLOAD] 填写{'描述' if title_to_desc else '标题'}: {selector}"
                         )
                         page.input_text(selector, title)
@@ -1158,9 +1193,14 @@ def upload_video():
                 page.human_random_scroll(1)
 
             if not input_found:
-                logger.warning(
+                video_upload_logger.warning(
                     f"[VIDEO_UPLOAD] 未找到{config['name']}{'描述' if title_to_desc else '标题'}输入框"
                 )
+            else:
+                time.sleep(1)
+
+            page.press_key("Escape")
+            time.sleep(0.5)
 
         return jsonify(
             ApiResponse(

@@ -3,7 +3,9 @@
 import logging
 import os
 import sys
+from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
+
 
 from dotenv import load_dotenv
 from flask import Flask, send_from_directory
@@ -15,12 +17,32 @@ load_dotenv(project_root / ".env")
 
 from .api import comment_bp
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[logging.StreamHandler(sys.stdout)],
+# 确定 logs 目录
+logs_dir = project_root / "logs"
+os.makedirs(logs_dir, exist_ok=True)
+
+# 配置日志
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+formatter = logging.Formatter(
+    "%(asctime)s [%(levelname)s] %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
 )
+
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(formatter)
+root_logger.addHandler(console_handler)
+
+upload_logger = logging.getLogger("video-upload")
+upload_file_handler = TimedRotatingFileHandler(
+    logs_dir / "video-upload.log",
+    when="midnight",
+    interval=1,
+    backupCount=30,
+    encoding="utf-8",
+)
+upload_file_handler.setFormatter(formatter)
+upload_file_handler.setLevel(logging.INFO)
+upload_logger.addHandler(upload_file_handler)
 
 log = logging.getLogger("werkzeug")
 log.setLevel(logging.WARNING)

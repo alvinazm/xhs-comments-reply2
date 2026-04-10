@@ -87,6 +87,25 @@ class Page:
         self.session_id = session_id
         self._ws = cdp._ws
         self._id_counter = 1000
+        self._iframe_index: int | None = None
+
+    def set_iframe_context(self, index: int) -> None:
+        self._iframe_index = index
+        logger.info(f"切换到 iframe[{index}] 上下文")
+
+    def clear_iframe_context(self) -> None:
+        self._iframe_index = None
+        logger.info("切换回主文档上下文")
+
+    def _doc(self, selector: str) -> str:
+        if self._iframe_index is not None:
+            return f"window.frames[{self._iframe_index}].document.querySelector({json.dumps(selector)})"
+        return f"document.querySelector({json.dumps(selector)})"
+
+    def _doc_all(self, selector: str) -> str:
+        if self._iframe_index is not None:
+            return f"window.frames[{self._iframe_index}].document.querySelectorAll({json.dumps(selector)})"
+        return f"document.querySelectorAll({json.dumps(selector)})"
 
     def _send_session(self, method: str, params: dict | None = None) -> dict:
         """向 session 发送命令。"""
@@ -151,7 +170,8 @@ class Page:
             time.sleep(interval)
 
     def evaluate(self, expression: str, timeout: float = 30.0) -> Any:
-        """执行 JavaScript 表达式并返回结果。"""
+        if self._iframe_index is not None:
+            expression = f"(function(){{var f=window.frames[{self._iframe_index}];if(!f){{throw new Error('iframe[{self._iframe_index}] not found');}}return (function(){{return {expression}}})().call(f.document.defaultView);}})()"
         result = self._send_session(
             "Runtime.evaluate",
             {
@@ -166,11 +186,15 @@ class Page:
         return remote_obj.get("value")
 
     def query_selector(self, selector: str) -> str | None:
-        """查找单个元素，返回 objectId 或 None。"""
+        selector_js = json.dumps(selector)
+        if self._iframe_index is not None:
+            expr = f"(function(){{var f=window.frames[{self._iframe_index}];return f&&f.document.querySelector({selector_js});}})()"
+        else:
+            expr = f"document.querySelector({selector_js})"
         result = self._send_session(
             "Runtime.evaluate",
             {
-                "expression": f"document.querySelector({json.dumps(selector)})",
+                "expression": expr,
                 "returnByValue": False,
             },
         )
@@ -180,11 +204,7 @@ class Page:
         return remote_obj.get("objectId")
 
     def has_element(self, selector: str) -> bool:
-        """检查元素是否存在。"""
-        return (
-            self.evaluate(f"document.querySelector({json.dumps(selector)}) !== null")
-            is True
-        )
+        return self.evaluate(f"{self._doc(selector)} !== null") is True
 
     def wait_for_element(self, selector: str, timeout: float = 30.0) -> str:
         """等待元素出现，返回 objectId。"""
@@ -201,7 +221,7 @@ class Page:
         box = self.evaluate(
             f"""
             (() => {{
-                const el = document.querySelector({json.dumps(selector)});
+                const el = {self._doc(selector)};
                 if (!el) return null;
                 el.scrollIntoView({{block: 'center'}});
                 const rect = el.getBoundingClientRect();
@@ -218,11 +238,10 @@ class Page:
         self.mouse_click(x, y)
 
     def input_content_editable(self, selector: str, text: str) -> None:
-        """向 contentEditable 元素输入文本（CDP 逐字输入，模拟真实打字）。"""
         self.evaluate(
             f"""
             (() => {{
-                const el = document.querySelector({json.dumps(selector)});
+                const el = {self._doc(selector)};
                 if (el) el.focus();
             }})()
             """
@@ -274,7 +293,7 @@ class Page:
         return self.evaluate(
             f"""
             (() => {{
-                const el = document.querySelector({json.dumps(selector)});
+                const el = {self._doc(selector)};
                 return el ? el.textContent : null;
             }})()
             """
@@ -282,9 +301,7 @@ class Page:
 
     def get_elements_count(self, selector: str) -> int:
         """获取匹配元素数量。"""
-        result = self.evaluate(
-            f"document.querySelectorAll({json.dumps(selector)}).length"
-        )
+        result = self.evaluate(f"{self._doc_all(selector)}.length")
         return result if isinstance(result, int) else 0
 
     def scroll_by(self, x: int, y: int) -> None:
@@ -300,7 +317,7 @@ class Page:
         self.evaluate(
             f"""
             (() => {{
-                const el = document.querySelector({json.dumps(selector)});
+                const el = {self._doc(selector)};
                 if (el) el.scrollIntoView({{behavior: 'smooth', block: 'center'}});
             }})()
             """
@@ -311,7 +328,7 @@ class Page:
         self.evaluate(
             f"""
             (() => {{
-                const els = document.querySelectorAll({json.dumps(selector)});
+                const els = {self._doc_all(selector)};
                 if (els[{index}]) els[{index}].scrollIntoView({{behavior: 'smooth', block: 'center'}});
             }})()
             """
@@ -396,11 +413,10 @@ class Page:
         )
 
     def human_hover(self, selector: str) -> None:
-        """模拟人类悬停到元素上（先移动到元素位置）"""
         box = self.evaluate(
             f"""
             (() => {{
-                const el = document.querySelector({json.dumps(selector)});
+                const el = {self._doc(selector)};
                 if (!el) return null;
                 el.scrollIntoView({{block: 'center'}});
                 const rect = el.getBoundingClientRect();
@@ -423,13 +439,12 @@ class Page:
         time.sleep(random.uniform(0.2, 0.5))
 
     def human_click(self, selector: str) -> None:
-        """模拟人类点击元素（悬停 + 延迟 + 点击）"""
         self.human_hover(selector)
         time.sleep(random.uniform(0.1, 0.3))
         box = self.evaluate(
             f"""
             (() => {{
-                const el = document.querySelector({json.dumps(selector)});
+                const el = {self._doc(selector)};
                 if (!el) return null;
                 const rect = el.getBoundingClientRect();
                 return {{x: rect.left + rect.width / 2, y: rect.top + rect.height / 2}};
@@ -465,11 +480,11 @@ class Page:
         )
 
     def set_file_input_files(self, selector: str, file_path: str) -> None:
-        """通过CDP设置文件上传input的值(绕过文件对话框)"""
+        selector_expr = self._doc(selector)
         result = self._send_session(
             "Runtime.evaluate",
             {
-                "expression": f"document.querySelector({json.dumps(selector)})",
+                "expression": selector_expr,
                 "returnByValue": False,
             },
         )
@@ -488,13 +503,12 @@ class Page:
         logger.info(f"已设置文件: {file_path}")
 
     def input_text(self, selector: str, text: str) -> None:
-        """向input/textarea/contenteditable元素输入文本"""
         escaped_text = text.replace("'", "\\'").replace("\n", "\\n")
 
         is_contenteditable = self.evaluate(
             f"""
             (() => {{
-                const el = document.querySelector({json.dumps(selector)});
+                const el = {self._doc(selector)};
                 return el ? el.getAttribute('contenteditable') === 'true' : false;
             }})()
             """
@@ -504,11 +518,9 @@ class Page:
         time.sleep(random.uniform(0.3, 0.5))
 
         if is_contenteditable:
-            # 重新点击元素确保焦点
             self.human_click(selector)
             time.sleep(random.uniform(0.3, 0.5))
 
-            # Ctrl+A 全选
             self._send_session(
                 "Input.dispatchKeyEvent",
                 {
@@ -539,7 +551,6 @@ class Page:
                 },
             )
 
-            # Backspace 删除 - Lexical 需要每次删除间有延迟
             for _ in range(30):
                 self._send_session(
                     "Input.dispatchKeyEvent",
@@ -550,13 +561,54 @@ class Page:
             self.evaluate(
                 f"""
                 (() => {{
-                    const el = document.querySelector({json.dumps(selector)});
+                    const el = {self._doc(selector)};
                     if (el) {{
                         el.value = '';
                         el.dispatchEvent(new Event('input', {{ bubbles: true }}));
                     }}
                 }})()
                 """
+            )
+            # 使用 Ctrl+A + Delete 确保清空
+            time.sleep(random.uniform(0.1, 0.2))
+            self._send_session(
+                "Input.dispatchKeyEvent",
+                {
+                    "type": "keyDown",
+                    "modifiers": 2,
+                    "key": "Control",
+                    "code": "ControlLeft",
+                },
+            )
+            time.sleep(random.uniform(0.05, 0.1))
+            self._send_session(
+                "Input.dispatchKeyEvent",
+                {"type": "keyDown", "modifiers": 2, "key": "a", "code": "KeyA"},
+            )
+            time.sleep(random.uniform(0.05, 0.1))
+            self._send_session(
+                "Input.dispatchKeyEvent",
+                {"type": "keyUp", "modifiers": 2, "key": "a", "code": "KeyA"},
+            )
+            time.sleep(random.uniform(0.05, 0.1))
+            self._send_session(
+                "Input.dispatchKeyEvent",
+                {
+                    "type": "keyUp",
+                    "modifiers": 0,
+                    "key": "Control",
+                    "code": "ControlLeft",
+                },
+            )
+            time.sleep(random.uniform(0.05, 0.1))
+            self._send_session(
+                "Input.dispatchKeyEvent",
+                {"type": "keyDown", "key": "Delete", "code": "Delete"},
+            )
+            time.sleep(random.uniform(0.05, 0.1))
+            self._send_session(
+                "Input.dispatchKeyEvent",
+                {"type": "keyUp", "key": "Delete", "code": "Delete"},
             )
 
         time.sleep(random.uniform(0.2, 0.3))
@@ -580,7 +632,7 @@ class Page:
         self.evaluate(
             f"""
             (() => {{
-                const el = document.querySelector({json.dumps(selector)});
+                const el = {self._doc(selector)};
                 if (el) {{
                     el.blur();
                     el.dispatchEvent(new Event('blur', {{ bubbles: true }}));

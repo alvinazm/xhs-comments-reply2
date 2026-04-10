@@ -46,7 +46,7 @@ start_backend() {
     fi
     
     mkdir -p "$PROJECT_DIR/logs"
-    python -m app.main >> "$PROJECT_DIR/logs/server_$(date +%Y-%m-%d).log" 2>&1 &
+    python -m app.main >> "$PROJECT_DIR/logs/server.log" 2>&1 &
     BACKEND_PID=$!
     echo $BACKEND_PID > /tmp/xhs_backend.pid
     echo -e "${GREEN}后端已启动 (PID: $BACKEND_PID, port=$BACKEND_PORT)${NC}"
@@ -64,7 +64,7 @@ start_frontend() {
     fi
     
     echo -e "${YELLOW}启动 Vite 开发服务器 (port=$FRONTEND_PORT)...${NC}"
-    npm run dev >> "$PROJECT_DIR/logs/frontend_$(date +%Y-%m-%d).log" 2>&1 &
+    npm run dev >> "$PROJECT_DIR/logs/frontend.log" 2>&1 &
     FRONTEND_PID=$!
     echo $FRONTEND_PID > /tmp/xhs_frontend.pid
     echo -e "${GREEN}前端已启动 (PID: $FRONTEND_PID, port=$FRONTEND_PORT)${NC}"

@@ -150,6 +150,30 @@
                 </div>
               </div>
             </button>
+            <button
+              @click="togglePlatform('bilibili')"
+              :class="[
+                'p-3 rounded-lg border-2 transition-all text-left relative',
+                selectedPlatforms.includes('bilibili') 
+                  ? 'border-pink-400 bg-pink-50' 
+                  : 'border-gray-200 hover:border-gray-300'
+              ]"
+            >
+              <div v-if="selectedPlatforms.includes('bilibili')" class="absolute top-1 right-1 w-5 h-5 bg-pink-400 rounded-full flex items-center justify-center">
+                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-blue-500 flex items-center justify-center">
+                  <span class="text-white font-bold text-sm">B</span>
+                </div>
+                <div>
+                  <p class="font-medium text-gray-800 text-sm">B站</p>
+                  <p class="text-xs text-gray-400">bilibili</p>
+                </div>
+              </div>
+            </button>
           </div>
           <p class="text-xs text-gray-500 mt-2">已选择 {{ selectedPlatforms.length }} 个平台</p>
         </div>
@@ -360,10 +384,19 @@ const handleUpload = async () => {
   error.value = ''
   success.value = ''
   
+  const platformNames = {
+    'xiaohongshu': '小红书',
+    'douyin': '抖音',
+    'kuaishou': '快手',
+    'baijiahao': '百家号',
+    'bilibili': 'B站',
+    'weixin_video': '视频号'
+  }
+  
   const results = []
   
   for (const p of selectedPlatforms.value) {
-    uploadingPlatforms.value = [p === 'xiaohongshu' ? '小红书' : '抖音']
+    uploadingPlatforms.value = [platformNames[p] || p]
     
     try {
       const formData = new FormData()
@@ -379,13 +412,12 @@ const handleUpload = async () => {
       const json = await res.json()
       
       if (json.success) {
-        const platformName = p === 'xiaohongshu' ? '小红书' : '抖音'
-        results.push(platformName)
+        results.push(platformNames[p] || p)
       } else {
-        error.value = `${p === 'xiaohongshu' ? '小红书' : '抖音'}: ${json.error || '上传失败'}`
+        error.value = `${platformNames[p] || p}: ${json.error || '上传失败'}`
       }
     } catch (e) {
-      error.value = `${p === 'xiaohongshu' ? '小红书' : '抖音'}: ${e.message || '网络错误'}`
+      error.value = `${platformNames[p] || p}: ${e.message || '网络错误'}`
     }
   }
   
