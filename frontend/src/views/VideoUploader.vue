@@ -393,41 +393,33 @@ const handleUpload = async () => {
     'weixin_video': '视频号'
   }
   
-  const results = []
-  
-  for (const p of selectedPlatforms.value) {
-    uploadingPlatforms.value = [platformNames[p] || p]
-    
-    try {
-      const formData = new FormData()
-      formData.append('video', selectedFile.value)
-      formData.append('title', title.value)
-      formData.append('description', description.value)
-      formData.append('platform', p)
+  try {
+    const formData = new FormData()
+    formData.append('video', selectedFile.value)
+    formData.append('title', title.value)
+    formData.append('description', description.value)
+    formData.append('platforms', selectedPlatforms.value.join(','))
 
-      const res = await fetch('/api/upload-video', {
-        method: 'POST',
-        body: formData,
-      })
-      const json = await res.json()
-      
-      if (json.success) {
-        results.push(platformNames[p] || p)
-      } else {
-        error.value = `${platformNames[p] || p}: ${json.error || '上传失败'}`
-      }
-    } catch (e) {
-      error.value = `${platformNames[p] || p}: ${e.message || '网络错误'}`
+    uploadingPlatforms.value = selectedPlatforms.value.map(p => platformNames[p] || p)
+    
+    const res = await fetch('/api/upload-video', {
+      method: 'POST',
+      body: formData,
+    })
+    const json = await res.json()
+    
+    if (json.success) {
+      const platformList = json.data?.platforms?.map(p => p.platform_name) || selectedPlatforms.value.map(p => platformNames[p] || p)
+      success.value = `已在 ${platformList.join(', ')} 打开创作者平台，视频上传进行中，请在浏览器中确认上传状态`
+      selectedFile.value = null
+    } else {
+      error.value = json.error || '上传失败'
     }
+  } catch (e) {
+    error.value = e.message || '网络错误'
   }
   
   uploadingPlatforms.value = []
-  
-  if (results.length > 0) {
-    success.value = `已在 ${results.join(', ')} 打开创作者平台，视频上传进行中，请在浏览器中确认上传状态`
-    selectedFile.value = null
-  }
-  
   uploading.value = false
 }
 

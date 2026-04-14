@@ -151,7 +151,7 @@ def classify_single_batch(client, batch: list) -> list:
     try:
         log_info(f"[DEBUG] Calling MiniMax API with {len(batch)} comments")
         response = client.chat.completions.create(
-            model="MiniMax-M2.7",
+            model=Config.MINIMAX_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {

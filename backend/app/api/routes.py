@@ -920,6 +920,7 @@ def get_config():
             data={
                 "minimax_api_key": Config.MINIMAX_API_KEY,
                 "minimax_base_url": Config.MINIMAX_BASE_URL,
+                "minimax_model": Config.MINIMAX_MODEL,
             },
         ).to_dict()
     )
@@ -927,18 +928,37 @@ def get_config():
 
 @comment_bp.route("/upload-video", methods=["POST"])
 def upload_video():
-    """自动上传视频到创作者平台"""
-    import uuid
+    import hashlib
 
     video_file = request.files.get("video")
     title = request.form.get("title", "").strip()
     description = request.form.get("description", "").strip()
-    platform = request.form.get("platform", "xiaohongshu").strip()
+
+    # 支持单个平台或多个平台(逗号分隔)
+    platform_str = request.form.get("platform", "").strip()
+    platforms = request.form.get("platforms", "").strip()
+
+    # 合并平台列表
+    platform_list = []
+    if platforms:
+        platform_list = [p.strip() for p in platforms.split(",") if p.strip()]
+    elif platform_str:
+        platform_list = [platform_str]
+
+    if not platform_list:
+        platform_list = ["xiaohongshu"]
 
     if not video_file:
         return jsonify(
             ApiResponse(success=False, error="请选择视频文件").to_dict()
         ), 400
+
+    # 计算视频文件hash用于复用
+    file_content = video_file.read()
+    video_hash = hashlib.md5(file_content).hexdigest()[:12]
+    video_file.seek(0)
+
+    original_name = video_file.filename or "video.mp4"
 
     platform_config = {
         "xiaohongshu": {
@@ -1084,19 +1104,20 @@ def upload_video():
         },
     }
 
-    config = platform_config.get(platform, platform_config["xiaohongshu"])
-    video_upload_logger.info(f"[VIDEO_UPLOAD] 目标平台: {config['name']}")
-
     project_root = Path(__file__).parent.parent.parent.parent
     upload_dir = project_root / "upload"
     upload_dir.mkdir(exist_ok=True)
 
-    file_id = str(uuid.uuid4())[:8]
-    original_name = video_file.filename or "video.mp4"
-    saved_path = upload_dir / f"video_{file_id}_{original_name}"
+    saved_path = upload_dir / f"video_{video_hash}_{original_name}"
 
-    video_file.save(str(saved_path))
-    video_upload_logger.info(f"[VIDEO_UPLOAD] 视频已保存: {saved_path}")
+    if not saved_path.exists():
+        video_file.seek(0)
+        video_file.save(str(saved_path))
+        video_upload_logger.info(f"[VIDEO_UPLOAD] 视频已保存: {saved_path}")
+    else:
+        video_upload_logger.info(f"[VIDEO_UPLOAD] 复用已有视频: {saved_path}")
+
+    results = []
 
     try:
         try:
@@ -1123,100 +1144,103 @@ def upload_video():
 
         browser = Browser(host=Config.CHROME_HOST, port=Config.CHROME_PORT)
 
-        page = browser.new_page(config["url"])
+        for platform in platform_list:
+            config = platform_config.get(platform, platform_config["xiaohongshu"])
+            video_upload_logger.info(f"[VIDEO_UPLOAD] 开始上传到: {config['name']}")
 
-        video_upload_logger.info(
-            f"[VIDEO_UPLOAD] 已打开{config['name']}创作者平台: {config['url']}"
-        )
+            page = browser.new_page(config["url"])
 
-        page.human_wait_page_load()
-
-        if config.get("iframe_index") is not None:
-            page.set_iframe_context(config["iframe_index"])
             video_upload_logger.info(
-                f"[VIDEO_UPLOAD] 已切换到 iframe[{config['iframe_index']}] 上下文"
+                f"[VIDEO_UPLOAD] 已打开{config['name']}创作者平台: {config['url']}"
             )
 
-        page.human_random_scroll(1)
+            page.human_wait_page_load()
 
-        file_input_found = False
-        for retry in range(3):
-            if file_input_found:
-                break
-            for selector in config["file_selectors"]:
-                count = page.get_elements_count(selector)
-                if count > 0:
-                    video_upload_logger.info(f"[VIDEO_UPLOAD] 找到上传区域: {selector}")
-                    page.human_hover(selector)
-                    time.sleep(random.uniform(0.3, 0.6))
+            if config.get("iframe_index") is not None:
+                page.set_iframe_context(config["iframe_index"])
+                video_upload_logger.info(
+                    f"[VIDEO_UPLOAD] 已切换到 iframe[{config['iframe_index']}] 上下文"
+                )
 
-                    is_input = selector.startswith("input")
-                    if is_input:
-                        page.set_file_input_files(selector, str(saved_path))
-                        file_input_found = True
-                        break
-                    else:
-                        page.click_element(selector)
-                        time.sleep(random.uniform(1, 2))
-                        hidden_input = page.query_selector("input[type='file']")
-                        if hidden_input:
-                            page.set_file_input_files(
-                                "input[type='file']", str(saved_path)
-                            )
+            page.human_random_scroll(1)
+
+            file_input_found = False
+            for retry in range(3):
+                if file_input_found:
+                    break
+                for selector in config["file_selectors"]:
+                    count = page.get_elements_count(selector)
+                    if count > 0:
+                        video_upload_logger.info(
+                            f"[VIDEO_UPLOAD] 找到上传区域: {selector}"
+                        )
+                        page.human_hover(selector)
+                        time.sleep(random.uniform(0.3, 0.6))
+
+                        is_input = selector.startswith("input")
+                        if is_input:
+                            page.set_file_input_files(selector, str(saved_path))
                             file_input_found = True
                             break
-            if not file_input_found and retry < 2:
-                video_upload_logger.info(
-                    f"[VIDEO_UPLOAD] 文件上传未找到，重试第{retry + 2}次"
-                )
-                time.sleep(2)
+                        else:
+                            page.click_element(selector)
+                            time.sleep(random.uniform(1, 2))
+                            hidden_input = page.query_selector("input[type='file']")
+                            if hidden_input:
+                                page.set_file_input_files(
+                                    "input[type='file']", str(saved_path)
+                                )
+                                file_input_found = True
+                                break
+                if not file_input_found and retry < 2:
+                    video_upload_logger.info(
+                        f"[VIDEO_UPLOAD] 文件上传未找到，重试第{retry + 2}次"
+                    )
+                    time.sleep(2)
 
-        if not file_input_found:
-            video_upload_logger.warning(
-                f"[VIDEO_UPLOAD] 未找到{config['name']}文件上传input，请在页面手动上传"
-            )
-
-        time.sleep(random.uniform(5, 8))
-
-        title_to_desc = config.get("title_to_description", False)
-
-        if title:
-            target_selectors = (
-                config.get("description_selectors")
-                if title_to_desc
-                else config.get("title_selectors", [])
-            )
-            input_found = False
-
-            for _ in range(3):
-                for selector in target_selectors:
-                    if page.has_element(selector):
-                        video_upload_logger.info(
-                            f"[VIDEO_UPLOAD] 填写{'描述' if title_to_desc else '标题'}: {selector}"
-                        )
-                        page.input_text(selector, title)
-                        input_found = True
-                        break
-                if input_found:
-                    break
-                time.sleep(2)
-                page.human_random_scroll(1)
-
-            if not input_found:
+            if not file_input_found:
                 video_upload_logger.warning(
-                    f"[VIDEO_UPLOAD] 未找到{config['name']}{'描述' if title_to_desc else '标题'}输入框"
+                    f"[VIDEO_UPLOAD] 未找到{config['name']}文件上传input，请在页面手动上传"
                 )
-            else:
-                time.sleep(1)
 
-            page.press_key("Escape")
-            time.sleep(0.5)
+            time.sleep(random.uniform(5, 8))
 
-        return jsonify(
-            ApiResponse(
-                success=True,
-                message=f"视频上传已开始，请在浏览器中确认上传状态并完成发布",
-                data={
+            title_to_desc = config.get("title_to_description", False)
+
+            if title:
+                target_selectors = (
+                    config.get("description_selectors")
+                    if title_to_desc
+                    else config.get("title_selectors", [])
+                )
+                input_found = False
+
+                for _ in range(3):
+                    for selector in target_selectors:
+                        if page.has_element(selector):
+                            video_upload_logger.info(
+                                f"[VIDEO_UPLOAD] 填写{'描述' if title_to_desc else '标题'}: {selector}"
+                            )
+                            page.input_text(selector, title)
+                            input_found = True
+                            break
+                    if input_found:
+                        break
+                    time.sleep(2)
+                    page.human_random_scroll(1)
+
+                if not input_found:
+                    video_upload_logger.warning(
+                        f"[VIDEO_UPLOAD] 未找到{config['name']}{'描述' if title_to_desc else '标题'}输入框"
+                    )
+                else:
+                    time.sleep(1)
+
+                page.press_key("Escape")
+                time.sleep(0.5)
+
+            results.append(
+                {
                     "url": config["url"],
                     "platform": platform,
                     "platform_name": config["name"],
@@ -1225,15 +1249,30 @@ def upload_video():
                     "title": title,
                     "description": description,
                     "auto_uploaded": file_input_found,
-                },
-            ).to_dict()
-        )
+                }
+            )
+
+            time.sleep(1)
 
     except Exception as e:
         logger.error("视频上传失败: %s", e)
         return jsonify(
             ApiResponse(success=False, error=f"操作失败: {e!s}").to_dict()
         ), 500
+
+    platform_names = [platform_config.get(p, {}).get("name", p) for p in platform_list]
+
+    return jsonify(
+        ApiResponse(
+            success=True,
+            message=f"已在 {', '.join(platform_names)} 打开创作者平台，视频上传进行中，请在浏览器中确认上传状态",
+            data={
+                "platforms": results,
+                "video_path": str(saved_path),
+                "video_name": original_name,
+            },
+        ).to_dict()
+    )
 
 
 @comment_bp.route("/config", methods=["POST"])
@@ -1242,6 +1281,7 @@ def save_config():
     data = request.get_json()
     minimax_api_key = data.get("minimax_api_key", "").strip()
     minimax_base_url = data.get("minimax_base_url", "").strip()
+    minimax_model = data.get("minimax_model", "").strip()
 
     if not minimax_api_key:
         return jsonify(
@@ -1250,6 +1290,9 @@ def save_config():
 
     if not minimax_base_url:
         minimax_base_url = "https://api.minimaxi.com/v1"
+
+    if not minimax_model:
+        minimax_model = "MiniMax-M2.7"
 
     # Dev 模式: 项目根目录; App 模式: Contents 目录
     if getattr(sys, "frozen", False):
@@ -1264,11 +1307,13 @@ def save_config():
             )
             f.write(f"MINIMAX_API_KEY={minimax_api_key}\n")
             f.write(f"MINIMAX_BASE_URL={minimax_base_url}\n")
+            f.write(f"MINIMAX_MODEL={minimax_model}\n")
 
         from config import Config
 
         Config.MINIMAX_API_KEY = minimax_api_key
         Config.MINIMAX_BASE_URL = minimax_base_url
+        Config.MINIMAX_MODEL = minimax_model
 
         return jsonify(ApiResponse(success=True, message="配置已保存").to_dict())
     except Exception as e:

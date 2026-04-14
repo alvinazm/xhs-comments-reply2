@@ -398,6 +398,16 @@
                 {{ minimaxBaseUrl || 'https://api.minimaxi.com/v1' }}
               </div>
             </div>
+
+            <div class="mb-3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">模型</label>
+              <input
+                v-model="minimaxModel"
+                type="text"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent font-mono text-sm"
+                placeholder="MiniMax-M2.7"
+              />
+            </div>
             
             <p class="text-xs text-gray-500 mb-3">
               获取 API Key: <a href="https://platform.minimaxi.com/user-center/basic-information/interface-key" target="_blank" class="text-blue-500 hover:underline">https://platform.minimaxi.com</a>
@@ -486,6 +496,7 @@ const whitelistInput = ref('')
 const savingWhitelist = ref(false)
 const minimaxApiKey = ref('')
 const minimaxBaseUrl = ref('')
+const minimaxModel = ref('')
 const savingConfig = ref(false)
 const activeSettingsTab = ref('prompt')
 const savingPrompt = ref(false)
@@ -852,6 +863,7 @@ const loadConfig = async () => {
     if (res.success) {
       minimaxApiKey.value = res.data.minimax_api_key || ''
       minimaxBaseUrl.value = res.data.minimax_base_url || 'https://api.minimaxi.com/v1'
+      minimaxModel.value = res.data.minimax_model || 'MiniMax-M2.7'
     }
   } catch (e) {
     console.error('加载配置失败', e)
@@ -864,6 +876,7 @@ const saveConfig = async () => {
     await xhsApi.saveConfig({
       minimax_api_key: minimaxApiKey.value,
       minimax_base_url: minimaxBaseUrl.value,
+      minimax_model: minimaxModel.value,
     })
     alert('配置已保存')
   } catch (e) {

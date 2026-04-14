@@ -40,13 +40,21 @@ start_backend() {
     echo -e "${YELLOW}启动后端服务...${NC}"
     cd "$PROJECT_DIR/backend"
     
-    if ! pip show flask > /dev/null 2>&1; then
+    if [ ! -d "$PROJECT_DIR/venv" ]; then
+        echo -e "${YELLOW}创建虚拟环境...${NC}"
+        python3 -m venv "$PROJECT_DIR/venv"
+    fi
+    
+    VENV_PIP="$PROJECT_DIR/venv/bin/pip"
+    VENV_PYTHON="$PROJECT_DIR/venv/bin/python"
+    
+    if ! "$VENV_PIP" show flask > /dev/null 2>&1; then
         echo -e "${YELLOW}安装后端依赖...${NC}"
-        pip install -r "$PROJECT_DIR/backend/requirements.txt"
+        "$VENV_PIP" install -r "$PROJECT_DIR/backend/requirements.txt"
     fi
     
     mkdir -p "$PROJECT_DIR/logs"
-    python -m app.main >> "$PROJECT_DIR/logs/server.log" 2>&1 &
+    "$VENV_PYTHON" -m app.main >> "$PROJECT_DIR/logs/server.log" 2>&1 &
     BACKEND_PID=$!
     echo $BACKEND_PID > /tmp/xhs_backend.pid
     echo -e "${GREEN}后端已启动 (PID: $BACKEND_PID, port=$BACKEND_PORT)${NC}"

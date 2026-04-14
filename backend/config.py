@@ -60,5 +60,6 @@ class Config:
 
     MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
     MINIMAX_BASE_URL = os.getenv("MINIMAX_BASE_URL", "https://api.minimax.chat/v1")
+    MINIMAX_MODEL = os.getenv("MINIMAX_MODEL", "MiniMax-M2.7")
 
     PROMPT = _yaml_config.get("prompt", {})
