@@ -37,20 +37,20 @@ echo "2/5 复制前端文件到后端 static 目录..."
 mkdir -p backend/static
 cp -r frontend/dist/* backend/static/
 
-echo "3/5 加密后端 Python 代码..."
+echo "3/5 复制后端代码到 dist_backend..."
 rm -rf dist_backend
-cd backend && pyarmor gen -O ../dist_backend -r app/ && cd ..
-
-echo "3.5/5 复制 config.py..."
+mkdir -p dist_backend
+cp -r backend/app dist_backend/app
 cp backend/config.py dist_backend/config.py
-
-echo "3.6/5 复制 prompts 目录..."
 mkdir -p dist_backend/prompts
 cp -r backend/prompts/* dist_backend/prompts/
 
 echo "4/5 运行 PyInstaller 打包..."
 rm -rf dist build
-PROJECT_ROOT="$SCRIPT_DIR" pyinstaller xhs_app.spec --clean
+# 使用虚拟环境的 Python 和 site-packages
+VENV_PY="$SCRIPT_DIR/venv/bin/python"
+VENV_PKG="$SCRIPT_DIR/venv/lib/python3.11/site-packages"
+PYTHONPATH="$VENV_PKG:$SCRIPT_DIR" "$VENV_PY" -m PyInstaller xhs_app.spec --clean
 
 echo ""
 echo "5/5 整理应用包..."

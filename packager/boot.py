@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""打包后的启动入口"""
 
 import os
 import sys
 import json
 import signal
 import threading
+import logging.handlers
+import importlib
+import importlib.resources
+import importlib.metadata
 from pathlib import Path
 
 if getattr(sys, "frozen", False):

@@ -6,7 +6,7 @@
           <h1 class="text-2xl font-bold text-xhs-red">视频上传</h1>
           <router-link
             to="/"
-            class="text-gray-600 hover:text-gray-800 text-sm"
+            class="text-blue-600 hover:text-blue-800 text-sm underline"
           >
             返回评论获取
           </router-link>
@@ -234,7 +234,8 @@
           <input
             v-model="title"
             type="text"
-            :placeholder="'输入视频标题'"
+            maxlength="30"
+            :placeholder="'输入视频标题（最长30字）'"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-xhs-red focus:border-transparent"
           />
         </div>

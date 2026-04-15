@@ -78,7 +78,7 @@
 | 前端框架 | Vue.js 3 + Vite + Pinia (状态管理) + TailwindCSS |
 | 后端框架 | Flask + Flask-CORS |
 | 浏览器自动化 | Selenium / Puppeteer (Chrome Debug) |
-| AI 分类 | MiniMax API (MiniMax-M2.7 模型) |
+| AI 分类 | MiniMax API (MiniMax-M2.5 模型) |
 | 任务调度 | APScheduler |
 | 数据存储 | CSV 文件 + 内存任务状态 |
 | 配置管理 | Python-dotenv + JSON 配置文件 |

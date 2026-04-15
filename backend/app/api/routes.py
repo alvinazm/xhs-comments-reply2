@@ -1292,7 +1292,7 @@ def save_config():
         minimax_base_url = "https://api.minimaxi.com/v1"
 
     if not minimax_model:
-        minimax_model = "MiniMax-M2.7"
+        minimax_model = "MiniMax-M2.5"
 
     # Dev 模式: 项目根目录; App 模式: Contents 目录
     if getattr(sys, "frozen", False):
