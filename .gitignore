@@ -15,3 +15,5 @@ backend/static/assets/
 backend/static/index.html
 .gstack/
 upload/
+venv/
+.ruff_cache/
